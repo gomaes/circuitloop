@@ -238,3 +238,21 @@ def test_555_model_never_sticks_midlevel(tmp_path):
         t, v = wf.full_tran("OUT")
         mid = (v > 1.0) & (v < v.max() - 0.5)
         assert float(np.sum(np.diff(t)[mid[:-1]])) < 0.01
+
+
+def test_g2_overcurrent_ptc_after_diode_accepted(tmp_path):
+    code = reference("ldo_5v", "hardened").replace(
+        'vin += j1[1], f1[1]\nvptc += f1[2], d1["A"]\nvprot += d1["K"],',
+        'vin += j1[1], d1["A"]\nvptc += d1["K"], f1[1]\nvprot += f1[2],',
+    )
+    assert 'd1["K"], f1[1]' in code
+    out = run_design(tmp_path, "ldo_5v", code, phase=3)
+    assert "protect.overcurrent" not in rules_hit(out, "G2")
+
+
+def test_g2_overcurrent_ptc_in_shunt_rejected(tmp_path):
+    code = reference("ldo_5v", "hardened").replace(
+        'vin += j1[1], f1[1]\nvptc += f1[2], d1["A"]', 'vin += j1[1], d1["A"]\nvptc += f1[1]\ngnd += f1[2]'
+    )
+    out = run_design(tmp_path, "ldo_5v", code, phase=3)
+    assert "protect.overcurrent" in rules_hit(out, "G2")
