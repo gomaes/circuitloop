@@ -29,15 +29,20 @@ NE555:
     line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_NE555"
     models: |
       .subckt CL_NE555 GND TRIG OUT RESET CTRL THR DIS VCC
+      * comparator thresholds from the internal 5k/5k/5k divider
       Rd1 VCC CTRL 5k
       Rd2 CTRL lo 5k
       Rd3 lo GND 5k
       Bs s GND V = 0.5*(1+tanh(200*(V(lo)-V(TRIG))))
-      Br r GND V = 0.5*(1+tanh(200*(V(THR)-V(CTRL)))) + 0.5*(1+tanh(50*(0.7-V(RESET,GND))))
-      Bq q GND V = 0.5*(1+tanh(12*(V(s)+(1-V(s))*(1-min(V(r),1))*V(qm,GND)-0.5)))
+      Br r GND V = min(0.5*(1+tanh(200*(V(THR)-V(CTRL)))) + 0.5*(1+tanh(50*(0.7-V(RESET,GND)))), 1)
+      * SR latch: hysteretic switch keeps its state between set (c>0.5) and reset (c<-0.5)
+      Bc c GND V = V(s) - V(r)*(1-V(s))
+      Vone one GND 1
+      Sq one q c GND CL_SW555
+      .model CL_SW555 SW(VT=0 VH=0.5 RON=1 ROFF=1e9)
+      Rq q GND 1meg
       Rm q qm 1k
       Cm qm GND 10p
-      Rq q GND 1meg
       Bo o GND V = 0.5*(1+tanh(50*(V(qm,GND)-0.5)))*max(V(VCC,GND)-1.7,0)
       Vso o o2 0
       Ro o2 OUT 10

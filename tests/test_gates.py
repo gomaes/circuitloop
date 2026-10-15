@@ -227,3 +227,14 @@ def test_g4_regression_passes_for_same_design(tmp_path):
         tmp_path / "b", "opamp_x10", reference("opamp_x10", "hardened"), phase=3, baseline=base.measurements
     )
     assert out.report.gate("G4").status == Status.PASS
+
+
+def test_555_model_never_sticks_midlevel(tmp_path):
+    """Regression: the 555 latch must switch cleanly (no analog equilibrium at mid-supply)."""
+    import numpy as np
+
+    out = run_design(tmp_path, "ne555_blinker", reference("ne555_blinker", "hardened"))
+    for wf in out.sim.waveforms.values():
+        t, v = wf.full_tran("OUT")
+        mid = (v > 1.0) & (v < v.max() - 0.5)
+        assert float(np.sum(np.diff(t)[mid[:-1]])) < 0.01
