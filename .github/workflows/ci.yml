@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --python 3.12
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: bash -n install.sh && bash -n uninstall.sh
+
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ngspice
+        run: sudo apt-get update && sudo apt-get install -y ngspice
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --python ${{ matrix.python }}
+      # The agent is mocked in tests: no LLM is called in CI.
+      - run: uv run pytest -q
+      - name: CLI smoke test
+        run: |
+          uv run cloop doctor --agent mock || true
+          uv run cloop init /tmp/demo --example ldo_5v
+          uv run cloop verify examples/ldo_5v/reference/hardened_design.py --spec examples/ldo_5v/spec.yaml --out /tmp/verify
