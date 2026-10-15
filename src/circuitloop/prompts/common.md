@@ -12,5 +12,7 @@
 - The simulation harness connects the power supply between net `$pos_net` and net
   `$ground_net`, and attaches the loads/stimuli listed in the spec to the named nets.
   Name these nets exactly as written in the spec.
+- Bring every external connection (supply `$pos_net`/`$ground_net`, loads, input/output
+  signals) out to a connector pin (terminal block or pin header) — the board must be wireable.
 - Every rating in the parts DB is checked in simulation against the derating factors in
   the spec (normal operation) and against absolute maximum values (fault injection).

@@ -34,6 +34,7 @@ finish()
 - Input pins must not be connected only to other input pins (floating input).
 - ICs listed with `decoupling` in the catalog need at least that capacitance
   directly between the given pins' nets.
+- Supply, load and signal nets named in the spec must each reach a connector pin.
 - Every LED needs its own series resistor; its current is checked in simulation.
 - Polarised capacitors: `POS` to the more positive net. Diodes/LEDs: `A` anode, `K` cathode.
 - All parts are checked against their ratings × the spec's derating factors in
