@@ -71,7 +71,9 @@ def test_full_pipeline_passes(tmp_path):
     assert (first / "report.json").is_file() and not json.loads((first / "report.json").read_text())["passed"]
     assert (first / "work" / "ref" / "parts_catalog.md").is_file()
     assert (rd / "baseline.json").is_file()
-    assert (proj / "output" / "verification_report.md").is_file()
+    for f in ("final_report.md", "layout.html", "bom.csv", "build_guide.md", "schematic.svg", "ldo_5v.net"):
+        assert (proj / "output" / f).is_file(), f
+    assert (rd / "output" / "layout.html").is_file()
     # the fix prompt contains the failure report
     second = rd / iters[1]
     assert "erc.decoupling" in (second / "agent" / "prompt.md").read_text()
