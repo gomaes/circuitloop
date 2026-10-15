@@ -49,6 +49,8 @@ packages = ["src/circuitloop"]
 [tool.ruff]
 line-length = 110
 target-version = "py311"
+# verbatim agent output kept as produced
+extend-exclude = ["docs/sample_output"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
