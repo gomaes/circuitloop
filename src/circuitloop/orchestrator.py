@@ -26,6 +26,7 @@ from pathlib import Path
 
 import yaml
 from rich.console import Console
+from rich.markup import escape
 
 from . import EXIT_DESIGN_FAILED, EXIT_ENV_ERROR, EXIT_OK, EXIT_TAMPERED, __version__
 from .agents import AgentBackend, AgentTask
@@ -209,7 +210,7 @@ class Orchestrator:
                 )
                 self.state.message = e.message
             color = "red" if e.code != EXIT_ENV_ERROR else "yellow"
-            self._log(f"[{color} bold]STOPPED[/] ({e.code}): {e.message}")
+            self._log(f"[{color} bold]STOPPED[/] ({e.code}): {escape(e.message)}")
             return e.code
         finally:
             if hasattr(self, "state"):
@@ -394,12 +395,12 @@ class Orchestrator:
             refs["last_report.md"] = report.to_markdown()
         work = self._workspace(it, design, refs, design_readonly=False)
         label = "generate" if attempt == 0 else f"fix #{attempt}"
-        self._log(f"  [{it.name}] agent ({self.agent.name}) {role}: {label} ...")
+        self._log(f"  \\[{it.name}] agent ({self.agent.name}) {role}: {label} ...")
         task = AgentTask(role, instructions, work, ["design.py"], it / "agent", self.cfg.agent.timeout)
         res = self.agent.run(task)
         self._log(
-            f"  [{it.name}] agent finished in {res.duration_s:.0f}s"
-            + ("" if res.ok else f" [yellow](agent error: {res.error[:200]})[/]")
+            f"  \\[{it.name}] agent finished in {res.duration_s:.0f}s"
+            + ("" if res.ok else f" [yellow](agent error: {escape(res.error[:200])})[/]")
         )
         self._check_integrity(f"{it.name} ({phase} {role})")
         return it, work
@@ -422,7 +423,7 @@ class Orchestrator:
                 )
             )
             rep.write(it)
-            self._log(f"  [{it.name}] [red]no design.py produced[/]")
+            self._log(f"  \\[{it.name}] [red]no design.py produced[/]")
             return snap, VerifyOutcome(rep)
         ctx = VerifyContext(
             self.spec,
@@ -445,11 +446,11 @@ class Orchestrator:
         self._check_integrity(f"{it.name} verification")
         summary = ", ".join(f"{g.gate}:{g.status}" for g in outcome.report.gates)
         color = "green" if outcome.report.passed else "red"
-        self._log(f"  [{it.name}] gates ({time.monotonic() - t0:.0f}s): [{color}]{summary}[/]")
+        self._log(f"  \\[{it.name}] gates ({time.monotonic() - t0:.0f}s): [{color}]{summary}[/]")
         if self.verbose and not outcome.report.passed:
             for g in outcome.report.gates:
                 for f in g.errors()[:8]:
-                    self._log(f"      {g.gate} {f.rule}: {f.message.splitlines()[0]}")
+                    self._log(f"      {g.gate} {f.rule}: {escape(f.message.splitlines()[0])}")
         meta = json.loads((it / "meta.json").read_text())
         meta.update(finished=datetime.now().isoformat(timespec="seconds"), passed=outcome.report.passed)
         (it / "meta.json").write_text(json.dumps(meta, indent=2))
@@ -459,14 +460,16 @@ class Orchestrator:
         it = self._iter_dir("harden", "reviewer")
         work = self._workspace(it, design, {}, design_readonly=True)
         instr = _tmpl("review.md", protection=", ".join(self.spec.protection) or "(none)")
-        self._log(f"  [{it.name}] agent ({self.agent.name}) reviewer ...")
+        self._log(f"  \\[{it.name}] agent ({self.agent.name}) reviewer ...")
         res = self.agent.run(
             AgentTask("reviewer", instr, work, ["review.md"], it / "agent", self.cfg.agent.timeout)
         )
         self._check_integrity(f"{it.name} (review)")
         rv = work / "review.md"
         if not rv.is_file():
-            self._log(f"  [{it.name}] [yellow]reviewer produced no review.md ({res.error[:120]})[/]")
+            self._log(
+                f"  \\[{it.name}] [yellow]reviewer produced no review.md ({escape(res.error[:120])})[/]"
+            )
             return None
         shutil.copy(rv, it / "review.md")
         return rv.read_text()
