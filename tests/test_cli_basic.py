@@ -43,3 +43,33 @@ def test_doctor_runs():
     r = runner.invoke(app, ["doctor", "--agent", "claude"])
     assert r.exit_code in (0, 2)
     assert "ngspice" in r.stdout
+
+
+def test_parts_list():
+    r = runner.invoke(app, ["parts", "list", "--kind", "opamp"])
+    assert r.exit_code == 0 and "LM358" in r.stdout
+
+
+def test_parts_add(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    f = tmp_path / "new.yaml"
+    f.write_text("""
+R_2W:
+  description: 2 W resistor
+  kind: resistor
+  package: axial_500
+  footprint: x
+  mpn: "2W {value}"
+  value: required
+  pins: {1: {name: "1"}, 2: {name: "2"}}
+  ratings: [{type: power, max: 2.0}]
+  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+""")
+    r = runner.invoke(app, ["parts", "add", str(f)])
+    assert r.exit_code == 0, r.output
+    assert (tmp_path / "parts" / "local.yaml").is_file()
+    r = runner.invoke(app, ["parts", "add", str(f)])
+    assert r.exit_code == 2  # already registered
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("X: {description: d}\n")
+    assert runner.invoke(app, ["parts", "add", str(bad)]).exit_code == 2

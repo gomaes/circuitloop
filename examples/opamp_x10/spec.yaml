@@ -1,0 +1,68 @@
+name: opamp_x10
+description: >
+  DC-coupled non-inverting amplifier with a voltage gain of 10 running from a
+  single 9 V supply (8-10 V). The input is a ground-referenced sensor signal
+  between 0.2 V and 0.4 V (modelled as 0.3 V +/- 0.1 V at 1 kHz); the output
+  drives a 10 kOhm load. The supply input must tolerate reverse connection and
+  the signal input must have series protection.
+
+ground_net: GND
+power_input:
+  type: dc
+  pos_net: VSUP
+  neg_net: GND
+  v_min: 8.0
+  v_nom: 9.0
+  v_max: 10.0
+
+stimuli:
+  - net: IN
+    kind: sine
+    dc: 0.3
+    amplitude: 0.1
+    frequency: 1000
+
+loads:
+  - net: OUT
+    resistance: 10000
+
+transient:
+  stop: 5.0e-3
+  step: 2.0e-6
+  settle: 1.0e-3
+
+acceptance:
+  - type: gain
+    input_net: IN
+    output_net: OUT
+    min: 9.5
+    max: 10.5
+  - type: dc_voltage      # operating point at the 0.3 V input mid-level
+    net: OUT
+    min: 2.7
+    max: 3.3
+  - type: input_power
+    max: 0.1
+
+derating:
+  voltage: 0.8
+  current: 0.8
+  power: 0.5
+
+board:
+  type: perfboard
+  max_cols: 24
+  max_rows: 16
+
+parts_policy:
+  tht_only: true
+
+protection: [reverse_polarity, input_protection]
+
+faults:
+  - name: reverse_supply
+    kind: reverse_polarity
+    voltage: 10
+    expect:
+      max_input_current: 0.005
+      abs_max_ratings: true

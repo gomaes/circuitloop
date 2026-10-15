@@ -1,0 +1,51 @@
+name: ne555_blinker
+description: >
+  A single red LED that blinks at about 1 Hz (roughly 50 % duty is fine),
+  driven by an NE555 timer in astable mode and powered from a 9 V battery
+  (7.0-9.6 V over its life). The board must survive the battery snap being
+  connected the wrong way round.
+
+ground_net: GND
+power_input:
+  type: dc
+  pos_net: VBAT
+  neg_net: GND
+  v_min: 7.0
+  v_nom: 9.0
+  v_max: 9.6
+
+transient:
+  stop: 6.0
+  step: 1.0e-3
+  settle: 2.0
+
+acceptance:
+  - type: frequency
+    net: OUT          # 555 output (pin 3)
+    min: 0.85
+    max: 1.15
+  - type: input_power
+    max: 0.25
+
+derating:
+  voltage: 0.8
+  current: 0.8
+  power: 0.5
+
+board:
+  type: perfboard
+  max_cols: 24
+  max_rows: 16
+
+parts_policy:
+  tht_only: true
+
+protection: [reverse_polarity]
+
+faults:
+  - name: reverse_battery
+    kind: reverse_polarity
+    voltage: 9.6
+    expect:
+      max_input_current: 0.005
+      abs_max_ratings: true

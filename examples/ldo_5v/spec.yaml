@@ -1,0 +1,59 @@
+name: ldo_5v
+description: >
+  Regulated 5 V / 100 mA supply from a 9 V DC input (battery or wall adapter,
+  7.5-12 V) using a linear low-dropout regulator. The board must survive the
+  input being connected the wrong way round, and limit current on a short.
+
+ground_net: GND
+power_input:
+  type: dc
+  pos_net: VIN
+  neg_net: GND
+  v_min: 7.5
+  v_nom: 9.0
+  v_max: 12.0
+
+loads:
+  - net: VOUT
+    current: 0.1
+
+transient:
+  stop: 5e-3
+  step: 5e-6
+  settle: 2e-3
+
+acceptance:
+  - type: dc_voltage
+    net: VOUT
+    min: 4.85
+    max: 5.15
+  - type: ripple
+    net: VOUT
+    max: 0.02
+  - type: input_power
+    max: 1.5
+
+derating:
+  voltage: 0.8
+  current: 0.8
+  power: 0.5
+
+board:
+  type: perfboard
+  max_cols: 24
+  max_rows: 16
+
+parts_policy:
+  tht_only: true
+
+protection: [reverse_polarity, overcurrent]
+
+faults:
+  - name: reverse_12v
+    kind: reverse_polarity
+    voltage: 12
+    expect:
+      nets:
+        VOUT: {min: -0.3, max: 5.5}
+      max_input_current: 0.01
+      abs_max_ratings: true
