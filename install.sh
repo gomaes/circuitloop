@@ -34,7 +34,8 @@ if ! command -v uv >/dev/null 2>&1; then
     elif command -v wget >/dev/null 2>&1; then
       wget -qO- https://astral.sh/uv/install.sh | sh
     else
-      echo "error: need curl or wget to install uv" >&2
+      echo "error: need curl or wget to install uv (or install uv from your distribution," >&2
+      echo "       e.g. 'sudo pacman -S --needed uv' on Arch Linux)" >&2
       exit 2
     fi
     export PATH="$HOME/.local/bin:$PATH"
@@ -58,13 +59,34 @@ case ":$PATH:" in
 esac
 
 # --- system dependencies (reported, never installed with sudo) ---------------
-pm_hint() {
-  local pkg="$1"
-  if command -v apt-get >/dev/null 2>&1; then echo "sudo apt install $pkg"
-  elif command -v dnf >/dev/null 2>&1; then echo "sudo dnf install $pkg"
-  elif command -v pacman >/dev/null 2>&1; then echo "sudo pacman -S $pkg"
-  else echo "install '$pkg' with your distribution's package manager"; fi
+# Distro family: os-release ID/ID_LIKE first (Arch derivatives report ID_LIKE=arch),
+# then whichever package manager is on PATH.
+distro_family() {
+  local ids=""
+  if [ -r /etc/os-release ]; then
+    ids="$( . /etc/os-release; echo " ${ID:-} ${ID_LIKE:-} " | tr '[:upper:]' '[:lower:]')"
+  fi
+  case "$ids" in
+    *" arch "*|*" archarm "*|*" manjaro "*|*" endeavouros "*|*" cachyos "*|*" garuda "*|*" artix "*) echo pacman; return ;;
+    *" debian "*|*" ubuntu "*) echo apt; return ;;
+    *" fedora "*|*" rhel "*|*" centos "*) echo dnf; return ;;
+  esac
+  if command -v pacman >/dev/null 2>&1; then echo pacman
+  elif command -v apt-get >/dev/null 2>&1; then echo apt
+  elif command -v dnf >/dev/null 2>&1; then echo dnf
+  else echo unknown; fi
 }
+FAMILY="$(distro_family)"
+
+pm_hint() {
+  case "$FAMILY" in
+    pacman) echo "sudo pacman -S --needed $*" ;;
+    apt)    echo "sudo apt install $*" ;;
+    dnf)    echo "sudo dnf install $*" ;;
+    *)      echo "install '$*' with your distribution's package manager" ;;
+  esac
+}
+[ "$FAMILY" = pacman ] && info "detected an Arch-based distribution (pacman)"
 
 if ! command -v ngspice >/dev/null 2>&1; then
   warn "ngspice is required for simulation but was not found."
@@ -72,6 +94,9 @@ if ! command -v ngspice >/dev/null 2>&1; then
 fi
 if ! command -v claude >/dev/null 2>&1 && ! command -v opencode >/dev/null 2>&1; then
   warn "no agent CLI found. Install at least one of:"
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "    first install Node.js/npm: $(pm_hint nodejs npm)"
+  fi
   echo "    Claude Code: npm install -g @anthropic-ai/claude-code"
   echo "    OpenCode:    npm install -g opencode-ai"
 fi
