@@ -103,11 +103,19 @@ def _body(p: Placed, lay: Layout, kind: str, value: str) -> list[str]:
                 f'<rect x="{L / 2 - S * 0.25}" y="{-S * 0.28}" width="{S * 0.14}" height="{S * 0.56}" class="band"/>'
             )
         out.append("</g>")
-    elif g in ("radial", "led") or kind == "electrolytic":
+    elif g == "radial" and kind != "electrolytic":  # ceramic disc / film: thin body along the pads
         a, b = _xy(pads[1], lay.cols, False), _xy(pads[2], lay.cols, False)
         cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
-        r = max(math.dist(a, b) / 2 + S * 0.38, S * 0.75)
-        cls = {"led": "led", "radial": "ecap" if kind == "electrolytic" else "cer"}.get(g, "cer")
+        ang = math.degrees(math.atan2(b[1] - a[1], b[0] - a[0]))
+        out.append(
+            f'<ellipse cx="{cx}" cy="{cy}" rx="{math.dist(a, b) / 2 + S * 0.45:.1f}" ry="{S * 0.32:.1f}" '
+            f'transform="rotate({ang} {cx} {cy})" class="cer"/>'
+        )
+    elif g in ("ecap", "led", "radial"):
+        a, b = _xy(pads[1], lay.cols, False), _xy(pads[2], lay.cols, False)
+        cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+        r = S * 0.98 if g != "led" else S * 0.95
+        cls = "led" if g == "led" else "ecap"
         out.append(f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" class="{cls}"/>')
         if kind in ("electrolytic", "led"):
             out.append(f'<text x="{a[0]}" y="{a[1] - S * 0.45}" class="pol" text-anchor="middle">+</text>')

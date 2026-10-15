@@ -61,7 +61,7 @@ C_FILM_100V:
 C_ELEC_16V:
   description: Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, polarised (pin 1 = +)
   kind: electrolytic
-  package: radial_100
+  package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
   mpn: "Electrolytic 16V {value}"
   value: required
@@ -75,7 +75,7 @@ C_ELEC_16V:
 C_ELEC_25V:
   description: Aluminium electrolytic capacitor, 25 V, radial 2.5 mm, polarised (pin 1 = +)
   kind: electrolytic
-  package: radial_100
+  package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
   mpn: "Electrolytic 25V {value}"
   value: required
@@ -89,7 +89,7 @@ C_ELEC_25V:
 C_ELEC_35V:
   description: Aluminium electrolytic capacitor, 35 V, radial 2.5 mm, polarised (pin 1 = +)
   kind: electrolytic
-  package: radial_100
+  package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D6.3mm_P2.50mm
   mpn: "Electrolytic 35V {value}"
   value: required

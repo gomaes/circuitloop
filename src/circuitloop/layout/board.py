@@ -411,9 +411,25 @@ def verify_layout(lay: Layout, nl: Netlist, max_cols: int, max_rows: int) -> Gat
     return GateResult("G6", "perfboard layout", status_from(findings), findings, metrics)
 
 
-def build_layout(nl: Netlist, db: PartsDB, max_cols: int, max_rows: int, seed: int = 1) -> Layout:
-    placed = place(nl, db, max_cols, max_rows, seed=seed)
-    lay = route(nl, placed, max_cols, max_rows)
+def build_layout(
+    nl: Netlist, db: PartsDB, max_cols: int, max_rows: int, seeds: tuple[int, ...] = (1, 2, 3, 4)
+) -> Layout:
+    """Place and route with several deterministic seeds; keep the best board.
+
+    Best = valid placement first, then fewest jumper wires, then smallest area.
+    """
+    best, best_key = None, None
+    for seed in seeds:
+        placed = place(nl, db, max_cols, max_rows, seed=seed)
+        cand = route(nl, placed, max_cols, max_rows)
+        x0, y0, x1, y1 = cand.bbox()
+        cells = [c for p in placed.values() for c in p.cells()]
+        overlap = len(cells) - len(set(cells))
+        outside = sum(not (0 <= c[0] < max_cols and 0 <= c[1] < max_rows) for c in cells)
+        key = (overlap + outside, len(cand.jumpers), (x1 - x0 + 1) * (y1 - y0 + 1))
+        if best_key is None or key < best_key:
+            best, best_key = cand, key
+    lay = best
     # normalise: shift so the used area starts at (1, 1)
     x0, y0, x1, y1 = lay.bbox()
     dx, dy = 1 - x0, 1 - y0
