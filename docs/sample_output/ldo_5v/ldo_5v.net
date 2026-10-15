@@ -1,0 +1,307 @@
+(export 
+  (version "D")
+  (design
+    (source "design.py")
+    (date "10/15/2026 02:43 AM")
+    (tool "SKiDL (2.3.0)")
+    (sheet
+      (number 1)
+      (name "/")
+      (tstamps "/")
+      (title_block
+        (title)
+        (company)
+        (rev)
+        (date)
+        (source "verify/build/design.py")
+        (comment
+          (number "1")
+          (value ""))
+        (comment
+          (number "2")
+          (value ""))
+        (comment
+          (number "3")
+          (value ""))
+        (comment
+          (number "4")
+          (value ""))
+        (comment
+          (number "5")
+          (value ""))
+        (comment
+          (number "6")
+          (value ""))
+        (comment
+          (number "7")
+          (value ""))
+        (comment
+          (number "8")
+          (value ""))
+        (comment
+          (number "9")
+          (value "")))))
+  (components
+    (comp
+      (ref "C1")
+      (value "470n")
+      (description "")
+      (footprint "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm")
+      (fields
+        (field
+          (name "cloop_part") "C_CER_50V")
+        (field
+          (name "Description"))
+        (field
+          (name "Footprint") "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm")
+        (field
+          (name "Datasheet"))
+        (field
+          (name "SKiDL Tag") "C1")
+        (field
+          (name "SKiDL Line") "../../../../../../../../../home/user/circuitloop/src/circuitloop/lib.py:77"))
+      (libsource
+        (lib "NO_LIB")
+        (part "C_CER_50V"))
+      (sheetpath
+        (names "/")
+        (tstamps "/"))
+      (component_classes)
+      (tstamps "b514d237-c153-5f6d-afe2-53badf97a864"))
+    (comp
+      (ref "C2")
+      (value "47u")
+      (description "")
+      (footprint "Capacitor_THT:CP_Radial_D5.0mm_P2.50mm")
+      (fields
+        (field
+          (name "cloop_part") "C_ELEC_16V")
+        (field
+          (name "Description"))
+        (field
+          (name "Footprint") "Capacitor_THT:CP_Radial_D5.0mm_P2.50mm")
+        (field
+          (name "Datasheet"))
+        (field
+          (name "SKiDL Tag") "C2")
+        (field
+          (name "SKiDL Line") "../../../../../../../../../home/user/circuitloop/src/circuitloop/lib.py:77"))
+      (libsource
+        (lib "NO_LIB")
+        (part "C_ELEC_16V"))
+      (sheetpath
+        (names "/")
+        (tstamps "/"))
+      (component_classes)
+      (tstamps "507fddd0-e494-5270-a7e4-2511aa140519"))
+    (comp
+      (ref "D1")
+      (value "1N5819")
+      (description "")
+      (footprint "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal")
+      (fields
+        (field
+          (name "cloop_part") "1N5819")
+        (field
+          (name "Description"))
+        (field
+          (name "Footprint") "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal")
+        (field
+          (name "Datasheet"))
+        (field
+          (name "SKiDL Tag") "D1")
+        (field
+          (name "SKiDL Line") "../../../../../../../../../home/user/circuitloop/src/circuitloop/lib.py:77"))
+      (libsource
+        (lib "NO_LIB")
+        (part "1N5819"))
+      (sheetpath
+        (names "/")
+        (tstamps "/"))
+      (component_classes)
+      (tstamps "730dc923-5f42-5190-a58b-2dbed3a5d5b0"))
+    (comp
+      (ref "F1")
+      (value "PTC_RXEF020")
+      (description "")
+      (footprint "Fuse:Fuse_Littelfuse-LVR100")
+      (fields
+        (field
+          (name "cloop_part") "PTC_RXEF020")
+        (field
+          (name "Description"))
+        (field
+          (name "Footprint") "Fuse:Fuse_Littelfuse-LVR100")
+        (field
+          (name "Datasheet"))
+        (field
+          (name "SKiDL Tag") "F1")
+        (field
+          (name "SKiDL Line") "../../../../../../../../../home/user/circuitloop/src/circuitloop/lib.py:77"))
+      (libsource
+        (lib "NO_LIB")
+        (part "PTC_RXEF020"))
+      (sheetpath
+        (names "/")
+        (tstamps "/"))
+      (component_classes)
+      (tstamps "c8376089-30f9-5993-9f79-3ca96ebaa282"))
+    (comp
+      (ref "J1")
+      (value "TERM_2P_5.08")
+      (description "")
+      (footprint "TerminalBlock:TerminalBlock_bornier-2_P5.08mm")
+      (fields
+        (field
+          (name "cloop_part") "TERM_2P_5.08")
+        (field
+          (name "Description"))
+        (field
+          (name "Footprint") "TerminalBlock:TerminalBlock_bornier-2_P5.08mm")
+        (field
+          (name "Datasheet"))
+        (field
+          (name "SKiDL Tag") "J1")
+        (field
+          (name "SKiDL Line") "../../../../../../../../../home/user/circuitloop/src/circuitloop/lib.py:77"))
+      (libsource
+        (lib "NO_LIB")
+        (part "TERM_2P_5.08"))
+      (sheetpath
+        (names "/")
+        (tstamps "/"))
+      (component_classes)
+      (tstamps "d7608689-a7d2-514c-aa16-0f8bde5cf213"))
+    (comp
+      (ref "J2")
+      (value "TERM_2P_5.08")
+      (description "")
+      (footprint "TerminalBlock:TerminalBlock_bornier-2_P5.08mm")
+      (fields
+        (field
+          (name "cloop_part") "TERM_2P_5.08")
+        (field
+          (name "Description"))
+        (field
+          (name "Footprint") "TerminalBlock:TerminalBlock_bornier-2_P5.08mm")
+        (field
+          (name "Datasheet"))
+        (field
+          (name "SKiDL Tag") "J2")
+        (field
+          (name "SKiDL Line") "../../../../../../../../../home/user/circuitloop/src/circuitloop/lib.py:77"))
+      (libsource
+        (lib "NO_LIB")
+        (part "TERM_2P_5.08"))
+      (sheetpath
+        (names "/")
+        (tstamps "/"))
+      (component_classes)
+      (tstamps "5e0b731b-c654-5cf6-8847-00f2f042255c"))
+    (comp
+      (ref "U1")
+      (value "LM2940CT-5.0")
+      (description "")
+      (footprint "Package_TO_SOT_THT:TO-220-3_Vertical")
+      (fields
+        (field
+          (name "cloop_part") "LM2940CT-5.0")
+        (field
+          (name "Description"))
+        (field
+          (name "Footprint") "Package_TO_SOT_THT:TO-220-3_Vertical")
+        (field
+          (name "Datasheet"))
+        (field
+          (name "SKiDL Tag") "U1")
+        (field
+          (name "SKiDL Line") "../../../../../../../../../home/user/circuitloop/src/circuitloop/lib.py:77"))
+      (libsource
+        (lib "NO_LIB")
+        (part "LM2940CT-5.0"))
+      (sheetpath
+        (names "/")
+        (tstamps "/"))
+      (component_classes)
+      (tstamps "f8fce87b-acde-5341-b554-4e93a034d648")))
+  (nets
+    (net
+      (code 1)
+      (name "GND")
+      (class "Default")
+      (node
+        (ref "C1")
+        (pin "2")
+        (pintype "PASSIVE"))
+      (node
+        (ref "C2")
+        (pin "2")
+        (pintype "PASSIVE"))
+      (node
+        (ref "J1")
+        (pin "2")
+        (pintype "PASSIVE"))
+      (node
+        (ref "J2")
+        (pin "2")
+        (pintype "PASSIVE"))
+      (node
+        (ref "U1")
+        (pin "2")
+        (pintype "POWER-IN")))
+    (net
+      (code 2)
+      (name "VFUSED")
+      (class "Default")
+      (node
+        (ref "D1")
+        (pin "1")
+        (pintype "PASSIVE"))
+      (node
+        (ref "F1")
+        (pin "2")
+        (pintype "PASSIVE")))
+    (net
+      (code 3)
+      (name "VIN")
+      (class "Default")
+      (node
+        (ref "F1")
+        (pin "1")
+        (pintype "PASSIVE"))
+      (node
+        (ref "J1")
+        (pin "1")
+        (pintype "PASSIVE")))
+    (net
+      (code 4)
+      (name "VOUT")
+      (class "Default")
+      (node
+        (ref "C2")
+        (pin "1")
+        (pintype "PASSIVE"))
+      (node
+        (ref "J2")
+        (pin "1")
+        (pintype "PASSIVE"))
+      (node
+        (ref "U1")
+        (pin "3")
+        (pintype "POWER-OUT")))
+    (net
+      (code 5)
+      (name "VPROT")
+      (class "Default")
+      (node
+        (ref "C1")
+        (pin "1")
+        (pintype "PASSIVE"))
+      (node
+        (ref "D1")
+        (pin "2")
+        (pintype "PASSIVE"))
+      (node
+        (ref "U1")
+        (pin "1")
+        (pintype "POWER-IN")))))

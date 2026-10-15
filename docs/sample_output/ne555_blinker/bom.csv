@@ -1,0 +1,12 @@
+refs,qty,part,value,mpn,description,package,footprint,ratings
+C1,1,C_ELEC_16V,10u,Electrolytic 16V 10u,"Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, polarised (pin 1 = +)",ecap_d5,Capacitor_THT:CP_Radial_D5.0mm_P2.50mm,16V
+C2,1,C_CER_50V,100n,MLCC 50V X7R 100n,"Multilayer ceramic capacitor, 50 V, X7R, radial 2.54 mm",radial_100,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm,50V
+C3,1,C_CER_50V,10n,MLCC 50V X7R 10n,"Multilayer ceramic capacitor, 50 V, X7R, radial 2.54 mm",radial_100,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm,50V
+D1,1,1N4007,,1N4007,"1 A / 1000 V general-purpose rectifier diode, DO-41 (pin 1 = anode)",axial_400,Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal,1A / 1000V / 1W
+D2,1,LED_RED_5MM,,LED 5mm red diffused,"5 mm red LED, Vf ~1.9 V @ 10 mA (pin 1 = anode)",led_5mm,LED_THT:LED_D5.0mm,25mA / 5V / 75mW
+J1,1,TERM_2P_5.08,,Screw terminal 2P 5.08mm,"2-pin screw terminal block, 5.08 mm pitch",term2_508,TerminalBlock:TerminalBlock_bornier-2_P5.08mm,10A / 250V
+J2,1,HDR_1x02,,Pin header 1x02 2.54mm,"Pin header 1x02, 2.54 mm",hdr_1x2,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,3A
+R1,1,R_1/4W,1k,MF 1/4W 1k,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+R2,1,R_1/4W,68k,MF 1/4W 68k,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+R3,1,R_1/4W,470,MF 1/4W 470,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+U1,1,NE555,,NE555P,"Bipolar 555 timer, DIP-8, 4.5-16 V",dip8,Package_DIP:DIP-8_W7.62mm,16V / 16V / 16V / 16V / 200mA / 600mW

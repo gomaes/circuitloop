@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 246" class="sch" width="1120" height="246" role="img" aria-label="schematic">
+<style>.sch{font-family:ui-sans-serif,system-ui,sans-serif;font-size:11px}.sym{fill:none;stroke:#222;stroke-width:1.6}.box{fill:#fffbe8;stroke:#222;stroke-width:1.4}.w{stroke:#222;stroke-width:1.2}.ref{font-weight:700}.val{fill:#555}.pn{fill:#333;font-size:10px}.nl{font-size:10px;font-weight:600}.pl{font-size:12px;font-weight:700}</style>
+<text x="20" y="18" class="ref">ldo_5v — net-label schematic</text>
+<line x1="80" y1="60" x2="135.0" y2="60" class="w"/>
+<text x="76" y="64" text-anchor="end" class="nl" fill="#7d3c98">VPROT</text>
+<text x="107.5" y="56" text-anchor="middle" class="pn">1</text>
+<line x1="230" y1="60" x2="175.0" y2="60" class="w"/>
+<text x="234" y="64" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="202.5" y="56" text-anchor="middle" class="pn">2</text>
+<line x1="151.0" y1="51" x2="151.0" y2="69" class="sym"/><line x1="159.0" y1="51" x2="159.0" y2="69" class="sym"/>
+<text x="155.0" y="84" text-anchor="middle" class="ref">C1</text>
+<text x="155.0" y="96" text-anchor="middle" class="val">470n</text>
+<line x1="350" y1="60" x2="405.0" y2="60" class="w"/>
+<text x="346" y="64" text-anchor="end" class="nl" fill="#b8860b">VOUT</text>
+<text x="377.5" y="56" text-anchor="middle" class="pn">POS</text>
+<line x1="500" y1="60" x2="445.0" y2="60" class="w"/>
+<text x="504" y="64" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="472.5" y="56" text-anchor="middle" class="pn">NEG</text>
+<line x1="421.0" y1="51" x2="421.0" y2="69" class="sym"/><line x1="429.0" y1="51" x2="429.0" y2="69" class="sym"/><text x="411.0" y="54" class="pl">+</text>
+<text x="425.0" y="84" text-anchor="middle" class="ref">C2</text>
+<text x="425.0" y="96" text-anchor="middle" class="val">47u</text>
+<line x1="620" y1="60" x2="675.0" y2="60" class="w"/>
+<text x="616" y="64" text-anchor="end" class="nl" fill="#1f618d">VFUSED</text>
+<text x="647.5" y="56" text-anchor="middle" class="pn">A</text>
+<line x1="770" y1="60" x2="715.0" y2="60" class="w"/>
+<text x="774" y="64" text-anchor="start" class="nl" fill="#7d3c98">VPROT</text>
+<text x="742.5" y="56" text-anchor="middle" class="pn">K</text>
+<polygon points="688.0,52 688.0,68 702.0,60" class="sym"/><line x1="702.0" y1="52" x2="702.0" y2="68" class="sym"/>
+<text x="695.0" y="84" text-anchor="middle" class="ref">D1</text>
+<text x="695.0" y="96" text-anchor="middle" class="val">1N5819</text>
+<line x1="890" y1="60" x2="945.0" y2="60" class="w"/>
+<text x="886" y="64" text-anchor="end" class="nl" fill="#3fa34d">VIN</text>
+<text x="917.5" y="56" text-anchor="middle" class="pn">1</text>
+<line x1="1040" y1="60" x2="985.0" y2="60" class="w"/>
+<text x="1044" y="64" text-anchor="start" class="nl" fill="#1f618d">VFUSED</text>
+<text x="1012.5" y="56" text-anchor="middle" class="pn">2</text>
+<rect x="951.0" y="55" width="28" height="10" class="sym"/>
+<text x="965.0" y="84" text-anchor="middle" class="ref">F1</text>
+<text x="965.0" y="96" text-anchor="middle" class="val">PTC_RXEF020</text>
+<rect x="80" y="130" width="150" height="38" class="box"/>
+<text x="155.0" y="144" text-anchor="middle" class="ref">J1 TERM_2P_5.08</text>
+<line x1="56" y1="156" x2="80" y2="156" class="w"/>
+<text x="84" y="160" class="pn">1 1</text>
+<text x="53" y="160" text-anchor="end" class="nl" fill="#3fa34d">VIN</text>
+<line x1="230" y1="156" x2="254" y2="156" class="w"/>
+<text x="226" y="160" text-anchor="end" class="pn">2 2</text>
+<text x="257" y="160" class="nl" fill="#3b3b3b">GND</text>
+<rect x="350" y="130" width="150" height="38" class="box"/>
+<text x="425.0" y="144" text-anchor="middle" class="ref">J2 TERM_2P_5.08</text>
+<line x1="326" y1="156" x2="350" y2="156" class="w"/>
+<text x="354" y="160" class="pn">1 1</text>
+<text x="323" y="160" text-anchor="end" class="nl" fill="#b8860b">VOUT</text>
+<line x1="500" y1="156" x2="524" y2="156" class="w"/>
+<text x="496" y="160" text-anchor="end" class="pn">2 2</text>
+<text x="527" y="160" class="nl" fill="#3b3b3b">GND</text>
+<rect x="620" y="130" width="150" height="56" class="box"/>
+<text x="695.0" y="144" text-anchor="middle" class="ref">U1 LM2940CT-5.0</text>
+<line x1="596" y1="156" x2="620" y2="156" class="w"/>
+<text x="624" y="160" class="pn">1 IN</text>
+<text x="593" y="160" text-anchor="end" class="nl" fill="#7d3c98">VPROT</text>
+<line x1="596" y1="174" x2="620" y2="174" class="w"/>
+<text x="624" y="178" class="pn">2 GND</text>
+<text x="593" y="178" text-anchor="end" class="nl" fill="#3b3b3b">GND</text>
+<line x1="770" y1="156" x2="794" y2="156" class="w"/>
+<text x="766" y="160" text-anchor="end" class="pn">OUT 3</text>
+<text x="797" y="160" class="nl" fill="#b8860b">VOUT</text>
+</svg>

@@ -1,0 +1,10 @@
+refs,qty,part,value,mpn,description,package,footprint,ratings
+C1,1,C_CER_50V,100n,MLCC 50V X7R 100n,"Multilayer ceramic capacitor, 50 V, X7R, radial 2.54 mm",radial_100,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm,50V
+C2,1,C_ELEC_25V,10u,Electrolytic 25V 10u,"Aluminium electrolytic capacitor, 25 V, radial 2.5 mm, polarised (pin 1 = +)",ecap_d5,Capacitor_THT:CP_Radial_D5.0mm_P2.50mm,25V
+D1,1,1N4007,,1N4007,"1 A / 1000 V general-purpose rectifier diode, DO-41 (pin 1 = anode)",axial_400,Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal,1A / 1000V / 1W
+D2,1,1N4148,,1N4148,"Small-signal switching diode 100 V / 200 mA, DO-35 (pin 1 = anode)",axial_300,Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal,200mA / 100V / 500mW
+J1,1,TERM_2P_5.08,,Screw terminal 2P 5.08mm,"2-pin screw terminal block, 5.08 mm pitch",term2_508,TerminalBlock:TerminalBlock_bornier-2_P5.08mm,10A / 250V
+J2 J3,2,HDR_1x02,,Pin header 1x02 2.54mm,"Pin header 1x02, 2.54 mm",hdr_1x2,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,3A
+R1 R3,2,R_1/4W,1k,MF 1/4W 1k,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+R2,1,R_1/4W,9k1,MF 1/4W 9k1,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+U1,1,LM358,,LM358P,"Dual op-amp, single supply 3-32 V, inputs include ground, DIP-8",dip8,Package_DIP:DIP-8_W7.62mm,32V / 32V / 32V / 32V / 32V / 40mA / 40mA / 830mW

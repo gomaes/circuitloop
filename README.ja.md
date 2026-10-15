@@ -86,6 +86,16 @@ ls output/
 | `final_report.md/.json` | 全ゲートの結果、部品ストレス表、波形 PNG、**未検証項目の明示** |
 | `design.py` | 最終設計の SKiDL ソース |
 
+## 出力例
+
+[`docs/sample_output/`](docs/sample_output/) に、同梱の 3 つの例題（`examples/`）を Claude Code で無人実行（`cloop run`）した実際の出力を置いています。
+
+- 5V LDO 電源（逆接続保護・過電流保護つき）
+- NE555 による 1Hz の LED 点滅回路
+- 単電源の 10 倍オペアンプ増幅器
+
+3 例とも、故障注入を含む全ゲート（G1〜G6）に合格しています。基板図は `layout.html` をブラウザで開くと、部品やパッドにマウスを載せて詳細を確認できます。
+
 ## コマンド
 
 | コマンド | 内容 |

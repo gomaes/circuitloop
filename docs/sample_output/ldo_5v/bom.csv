@@ -1,0 +1,7 @@
+refs,qty,part,value,mpn,description,package,footprint,ratings
+C1,1,C_CER_50V,470n,MLCC 50V X7R 470n,"Multilayer ceramic capacitor, 50 V, X7R, radial 2.54 mm",radial_100,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm,50V
+C2,1,C_ELEC_16V,47u,Electrolytic 16V 47u,"Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, polarised (pin 1 = +)",ecap_d5,Capacitor_THT:CP_Radial_D5.0mm_P2.50mm,16V
+D1,1,1N5819,,1N5819,"1 A / 40 V Schottky rectifier, DO-41 (pin 1 = anode)",axial_400,Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal,1A / 40V / 1W
+F1,1,PTC_RXEF020,,RXEF020,"Resettable PTC fuse, 0.2 A hold / 0.4 A trip, 72 V, radial 5.1 mm",radial_200,Fuse:Fuse_Littelfuse-LVR100,200mA / 72V
+J1 J2,2,TERM_2P_5.08,,Screw terminal 2P 5.08mm,"2-pin screw terminal block, 5.08 mm pitch",term2_508,TerminalBlock:TerminalBlock_bornier-2_P5.08mm,10A / 250V
+U1,1,LM2940CT-5.0,,LM2940CT-5.0,"5 V 1 A low-dropout regulator (0.5 V dropout), reverse-input tolerant, TO-220",to220v,Package_TO_SOT_THT:TO-220-3_Vertical,26V / 1A / 1.6W
