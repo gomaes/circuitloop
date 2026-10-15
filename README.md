@@ -36,8 +36,9 @@ spec.yaml ─► Phase 1 minimal design ─► Phase 2 gates G1-G3 ─┐  fix l
 
 ## Install (Linux)
 
-Requirements: Linux (Ubuntu 22.04/24.04 primary), `ngspice`, and at least one agent CLI
-(`claude` or `opencode`). Python 3.11+ is provided by uv if needed.
+Requirements: Linux — Ubuntu 22.04/24.04 and Arch Linux (including Arch-based distributions such
+as Manjaro, EndeavourOS, CachyOS) are supported; others are best effort. You also need `ngspice`
+and at least one agent CLI (`claude` or `opencode`). Python 3.11+ is provided by uv if needed.
 
 ```bash
 git clone https://github.com/gomaes/circuitloop.git
@@ -46,6 +47,18 @@ cd circuitloop
 sudo apt install ngspice   # if install.sh reports it missing (it never runs sudo itself)
 cloop doctor
 ```
+
+On **Arch Linux**, install the system packages with pacman first (all are in the official repos;
+`install.sh` will also use a pacman-installed `uv`):
+
+```bash
+sudo pacman -S --needed git ngspice uv nodejs npm
+npm install -g @anthropic-ai/claude-code      # and/or: npm install -g opencode-ai
+git clone https://github.com/gomaes/circuitloop.git && cd circuitloop && ./install.sh
+```
+
+`cloop doctor` detects Arch and its derivatives from `/etc/os-release` and prints `pacman`
+commands for anything missing.
 
 `./uninstall.sh` removes the command (`--purge` also removes `~/.config/circuitloop`).
 
@@ -174,7 +187,8 @@ uv run pytest -q          # gates, broken-circuit tests, mock-agent end-to-end r
 uv run ruff check . && uv run ruff format --check .
 ```
 
-CI (GitHub Actions, Ubuntu 24.04) runs lint and tests on Python 3.11–3.13 with ngspice from apt.
+CI (GitHub Actions) runs lint and tests on Ubuntu 24.04 (Python 3.11–3.13, ngspice from apt) and in an
+`archlinux:latest` container (system Python, ngspice from pacman), including `install.sh`.
 
 ## License
 

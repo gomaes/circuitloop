@@ -46,7 +46,7 @@ spec.yaml ─► Phase 1 最小設計 ─► Phase 2 ゲート G1〜G3 ─┐  �
 
 前提は次のとおりです。
 
-- Linux（Ubuntu 22.04/24.04 が主対象）
+- Linux（Ubuntu 22.04/24.04 と Arch Linux に対応。Manjaro・EndeavourOS・CachyOS など Arch 系ディストリビューションも含む。その他はベストエフォート）
 - `ngspice`
 - エージェント CLI（`claude` か `opencode` のどちらか 1 つ以上）
 
@@ -59,6 +59,16 @@ cd circuitloop
 sudo apt install ngspice   # install.sh が不足を報告した場合（install.sh 自身は sudo を実行しません）
 cloop doctor
 ```
+
+**Arch Linux** では、先に pacman で必要なパッケージを入れてください。いずれも公式リポジトリにあります。pacman で入れた `uv` は `install.sh` がそのまま使います。
+
+```bash
+sudo pacman -S --needed git ngspice uv nodejs npm
+npm install -g @anthropic-ai/claude-code      # OpenCode を使う場合は npm install -g opencode-ai
+git clone https://github.com/gomaes/circuitloop.git && cd circuitloop && ./install.sh
+```
+
+`cloop doctor` は `/etc/os-release` から Arch 系かどうかを判定し、不足があれば `pacman` のコマンドを表示します。
 
 アンインストールは `./uninstall.sh` です。`--purge` を付けると `~/.config/circuitloop` も削除します。
 
@@ -223,7 +233,10 @@ uv run pytest -q          # 各ゲート、不良回路のテスト、モック�
 uv run ruff check . && uv run ruff format --check .
 ```
 
-CI（GitHub Actions、Ubuntu 24.04）では、apt で入れた ngspice を使い、Python 3.11〜3.13 で lint とテストを実行します。
+CI（GitHub Actions）では、次の 2 つの環境で lint とテストを実行します。
+
+- Ubuntu 24.04：Python 3.11〜3.13、ngspice は apt で導入
+- `archlinux:latest` コンテナ：システムの Python、ngspice は pacman で導入。`install.sh` の動作も確認
 
 ## ライセンス
 
