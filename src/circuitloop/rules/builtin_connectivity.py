@@ -115,3 +115,26 @@ def skidl_erc(ctx: RuleContext) -> list[Finding]:
         sev = Severity.ERROR if level == "ERROR" else Severity.WARNING
         out.append(Finding("erc.skidl", sev, msg))
     return out
+
+
+@rule("erc.interface_connector", "Supply, load and stimulus nets are brought out to a connector")
+def interface_connector(ctx: RuleContext) -> list[Finding]:
+    spec = ctx.spec
+    nets = {spec.power_input.pos_net, spec.ground_net}
+    nets |= {ld.net for ld in spec.loads} | {ld.ref_net for ld in spec.loads if ld.ref_net}
+    nets |= {s.net for s in spec.stimuli} | {s.ref_net for s in spec.stimuli if s.ref_net}
+    conns = {c.ref for c in ctx.components_of_kind("connector")}
+    out = []
+    for net in sorted(nets):
+        nodes = ctx.netlist.nodes(net)
+        if nodes and not any(r in conns for r, _ in nodes):
+            out.append(
+                Finding(
+                    "erc.interface_connector",
+                    Severity.ERROR,
+                    f"external net '{net}' is not on any connector pin",
+                    nets=[net],
+                    hint="Add a terminal block / pin header pin for every external connection.",
+                )
+            )
+    return out
