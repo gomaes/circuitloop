@@ -1,0 +1,135 @@
+# Passive components. Ratings are absolute maximums; spec.derating is applied in
+# normal operation, the raw value under fault injection.
+R_1/4W:
+  description: Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)
+  kind: resistor
+  package: axial_400
+  footprint: Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal
+  mpn: "MF 1/4W {value}"
+  value: required
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: power, max: 0.25}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+
+R_1/2W:
+  description: Metal film resistor, 1/2 W, axial (12.7 mm lead pitch)
+  kind: resistor
+  package: axial_500
+  footprint: Resistor_THT:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal
+  mpn: "MF 1/2W {value}"
+  value: required
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: power, max: 0.5}
+    - {type: voltage, pins: [1, 2], max: 350}
+  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+
+C_CER_50V:
+  description: Multilayer ceramic capacitor, 50 V, X7R, radial 2.54 mm
+  kind: capacitor
+  package: radial_100
+  footprint: Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm
+  mpn: "MLCC 50V X7R {value}"
+  value: required
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 50}
+  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+
+C_FILM_100V:
+  description: Polyester film capacitor, 100 V, radial 5.08 mm
+  kind: capacitor
+  package: radial_200
+  footprint: Capacitor_THT:C_Rect_L7.2mm_W2.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2
+  mpn: "PET film 100V {value}"
+  value: required
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 100}
+  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+
+C_ELEC_16V:
+  description: Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, polarised (pin 1 = +)
+  kind: electrolytic
+  package: radial_100
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Electrolytic 16V {value}"
+  value: required
+  pins:
+    1: {name: POS}
+    2: {name: NEG}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 16, min: -0.5}
+  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+
+C_ELEC_25V:
+  description: Aluminium electrolytic capacitor, 25 V, radial 2.5 mm, polarised (pin 1 = +)
+  kind: electrolytic
+  package: radial_100
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Electrolytic 25V {value}"
+  value: required
+  pins:
+    1: {name: POS}
+    2: {name: NEG}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 25, min: -0.5}
+  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+
+C_ELEC_35V:
+  description: Aluminium electrolytic capacitor, 35 V, radial 2.5 mm, polarised (pin 1 = +)
+  kind: electrolytic
+  package: radial_100
+  footprint: Capacitor_THT:CP_Radial_D6.3mm_P2.50mm
+  mpn: "Electrolytic 35V {value}"
+  value: required
+  pins:
+    1: {name: POS}
+    2: {name: NEG}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 35, min: -0.5}
+  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+
+PTC_RXEF020:
+  description: Resettable PTC fuse, 0.2 A hold / 0.4 A trip, 72 V, radial 5.1 mm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF020
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: current, pin: 1, max: 0.2}
+    - {type: voltage, pins: [1, 2], max: 72}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 1.0"
+    note: "untripped state only (typ. ~1 ohm); trip behaviour is not simulated"
+
+PTC_RXEF050:
+  description: Resettable PTC fuse, 0.5 A hold / 1.0 A trip, 72 V, radial 5.1 mm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF050
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: current, pin: 1, max: 0.5}
+    - {type: voltage, pins: [1, 2], max: 72}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 0.4"
+    note: "untripped state only (typ. ~0.4 ohm); trip behaviour is not simulated"

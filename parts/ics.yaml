@@ -1,0 +1,163 @@
+# Integrated circuits. SPICE models are circuitloop's own behavioural models
+# (B-sources); they capture DC/large-signal behaviour, not every datasheet detail.
+NE555:
+  description: Bipolar 555 timer, DIP-8, 4.5-16 V
+  kind: ic
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: NE555P
+  pins:
+    1: {name: GND, type: power_in}
+    2: {name: TRIG, type: input}
+    3: {name: OUT, type: output}
+    4: {name: RESET, type: input}
+    5: {name: CTRL, type: passive, optional: true}
+    6: {name: THR, type: input}
+    7: {name: DIS, type: passive, optional: true}
+    8: {name: VCC, type: power_in}
+  ratings:
+    - {type: voltage, pins: [8, 1], max: 16, min: -0.3}
+    - {type: voltage, pins: [2, 1], max: 16, min: -0.3}
+    - {type: voltage, pins: [6, 1], max: 16, min: -0.3}
+    - {type: voltage, pins: [4, 1], max: 16, min: -0.3}
+    - {type: current, pin: 3, max: 0.2}
+    - {type: power, max: 0.6}
+  decoupling:
+    - {pin: 8, gnd: 1, min: 1.0e-8}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_NE555"
+    models: |
+      .subckt CL_NE555 GND TRIG OUT RESET CTRL THR DIS VCC
+      Rd1 VCC CTRL 5k
+      Rd2 CTRL lo 5k
+      Rd3 lo GND 5k
+      Bs s GND V = 0.5*(1+tanh(200*(V(lo)-V(TRIG))))
+      Br r GND V = 0.5*(1+tanh(200*(V(THR)-V(CTRL)))) + 0.5*(1+tanh(50*(0.7-V(RESET,GND))))
+      Bq q GND V = 0.5*(1+tanh(12*(V(s)+(1-V(s))*(1-min(V(r),1))*V(qm,GND)-0.5)))
+      Rm q qm 1k
+      Cm qm GND 10p
+      Rq q GND 1meg
+      Bo o GND V = 0.5*(1+tanh(50*(V(qm,GND)-0.5)))*max(V(VCC,GND)-1.7,0)
+      Vso o o2 0
+      Ro o2 OUT 10
+      Bsup VCC GND I = (max(i(Vso),0) + 3m)*0.5*(1+tanh(5*(V(VCC,GND)-0.5)))
+      Rlk VCC GND 1meg
+      Bdis DIS GND I = 0.5*(1+tanh(50*(0.5-V(qm,GND))))*V(DIS,GND)/20
+      .ends CL_NE555
+
+LM358:
+  description: Dual op-amp, single supply 3-32 V, inputs include ground, DIP-8
+  kind: opamp
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: LM358P
+  pins:
+    1: {name: OUTA, type: output}
+    2: {name: INNA, type: input}
+    3: {name: INPA, type: input}
+    4: {name: GND, type: power_in}
+    5: {name: INPB, type: input}
+    6: {name: INNB, type: input}
+    7: {name: OUTB, type: output}
+    8: {name: VCC, type: power_in}
+  ratings:
+    - {type: voltage, pins: [8, 4], max: 32, min: -0.3}
+    - {type: voltage, pins: [2, 4], max: 32, min: -0.3}
+    - {type: voltage, pins: [3, 4], max: 32, min: -0.3}
+    - {type: voltage, pins: [5, 4], max: 32, min: -0.3}
+    - {type: voltage, pins: [6, 4], max: 32, min: -0.3}
+    - {type: current, pin: 1, max: 0.04}
+    - {type: current, pin: 7, max: 0.04}
+    - {type: power, max: 0.83}
+  decoupling:
+    - {pin: 8, gnd: 4, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_LM358"
+    models: |
+      .subckt CL_OPAMP INP INN OUT VCC GND params: aol=1e5 vohdrop=1.5 iq=0.35m
+      Bg a GND V = {aol}*(V(INP,GND)-V(INN,GND))
+      Rp a b 1k
+      Cp b GND 15.9u
+      Bo o GND V = max(min(V(b,GND), V(VCC,GND)-{vohdrop}), 0.005)
+      Vso o o2 0
+      Ro o2 OUT 50
+      Bsup VCC GND I = (max(i(Vso),0) + {iq})*0.5*(1+tanh(5*(V(VCC,GND)-0.5)))
+      Rlk VCC GND 1meg
+      .ends CL_OPAMP
+      .subckt CL_LM358 OUTA INNA INPA GND INPB INNB OUTB VCC
+      XA INPA INNA OUTA VCC GND CL_OPAMP
+      XB INPB INNB OUTB VCC GND CL_OPAMP
+      .ends CL_LM358
+
+LM2940CT-5.0:
+  description: 5 V 1 A low-dropout regulator (0.5 V dropout), reverse-input tolerant, TO-220
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: LM2940CT-5.0
+  pins:
+    1: {name: IN, type: power_in}
+    2: {name: GND, type: power_in}
+    3: {name: OUT, type: power_out}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 26, min: -15}
+    - {type: current, pin: 3, max: 1.0}
+    - {type: power, max: 1.6}
+  decoupling:
+    - {pin: 1, gnd: 2, min: 4.7e-7}
+    - {pin: 3, gnd: 2, min: 2.2e-5}
+  spice: &reg_spice
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_REG params: vout=5 vdrop=0.5 iq=5m"
+    models: |
+      .subckt CL_REG IN GND OUT params: vout=5 vdrop=0.5 iq=5m
+      Bv v GND V = max(min({vout}, V(IN,GND)-{vdrop}), 0)
+      Vs v v2 0
+      Rout v2 OUT 0.02
+      Bi IN GND I = (max(i(Vs),0) + {iq})*0.5*(1+tanh(5*(V(IN,GND)-0.5)))
+      Rleak IN GND 1meg
+      .ends CL_REG
+
+L7805CV:
+  description: 5 V 1.5 A linear regulator (2 V dropout), TO-220
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: L7805CV
+  pins:
+    1: {name: IN, type: power_in}
+    2: {name: GND, type: power_in}
+    3: {name: OUT, type: power_out}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 35, min: -0.3}
+    - {type: current, pin: 3, max: 1.5}
+    - {type: power, max: 1.6}
+  decoupling:
+    - {pin: 1, gnd: 2, min: 3.3e-7}
+    - {pin: 3, gnd: 2, min: 1.0e-7}
+  spice:
+    <<: *reg_spice
+    line: "X{ref} {1} {2} {3} CL_REG params: vout=5 vdrop=2 iq=5m"
+
+L78L05:
+  description: 5 V 100 mA linear regulator (1.7 V dropout), TO-92 (1=OUT 2=GND 3=IN)
+  kind: regulator
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: L78L05ACZ
+  pins:
+    1: {name: OUT, type: power_out}
+    2: {name: GND, type: power_in}
+    3: {name: IN, type: power_in}
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 30, min: -0.3}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.6}
+  decoupling:
+    - {pin: 3, gnd: 2, min: 3.3e-7}
+    - {pin: 1, gnd: 2, min: 1.0e-7}
+  spice:
+    <<: *reg_spice
+    line: "X{ref} {3} {2} {1} CL_REG params: vout=5 vdrop=1.7 iq=3m"
