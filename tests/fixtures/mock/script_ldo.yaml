@@ -1,0 +1,5 @@
+steps:
+  - {role: designer, file: ldo_broken.py}
+  - {role: designer, file: ../../../examples/ldo_5v/reference/phase1_design.py}
+  - {role: reviewer, file: review.md}
+  - {role: designer, file: ../../../examples/ldo_5v/reference/hardened_design.py}

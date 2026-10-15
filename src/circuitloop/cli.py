@@ -266,6 +266,84 @@ def parts_add(
         console.print(f"added [bold]{k}[/] -> {dest}{note}")
 
 
+def _resolve_agent(cfg, agent: str | None) -> None:
+    if agent is not None:
+        if agent not in ("claude", "opencode", "mock"):
+            err.print(f"[red]error:[/] --agent must be claude or opencode, got {agent!r}")
+            raise typer.Exit(EXIT_ENV_ERROR)
+        cfg.agent.backend = agent
+
+
+@app.command()
+def run(
+    spec: Annotated[Path, typer.Argument(help="spec.yaml (default: ./spec.yaml)")] = Path("spec.yaml"),
+    from_phase: Annotated[
+        str, typer.Option("--from", help="Resume the latest run from: design | harden | reverify | output")
+    ] = "design",
+    run_dir: Annotated[
+        Path | None, typer.Option("--run", help="Run directory to resume (default: latest)")
+    ] = None,
+    agent: AgentOpt = None,
+    max_iter: MaxIterOpt = None,
+    verbose: VerboseOpt = False,
+) -> None:
+    """Run the full pipeline unattended: design -> verify -> harden -> re-verify -> output."""
+    from .agents import AgentError, make_backend
+    from .config import load_config
+    from .orchestrator import Orchestrator
+
+    if not spec.is_file():
+        err.print(f"[red]error:[/] {spec} not found (create one with `cloop init`)")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    cfg = load_config(spec.resolve().parent)
+    _resolve_agent(cfg, agent)
+    if max_iter is not None:
+        cfg.loop.max_iter = max_iter
+    try:
+        backend = make_backend(cfg.agent)
+    except AgentError as e:
+        err.print(f"[red]error:[/] {e}")
+        raise typer.Exit(EXIT_ENV_ERROR) from e
+    code = Orchestrator(spec, cfg, backend, console=console, verbose=verbose).run(from_phase, run_dir)
+    raise typer.Exit(code)
+
+
+@app.command()
+def status(
+    project: Annotated[Path, typer.Argument(help="Project directory")] = Path("."),
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Show progress and result of the latest run."""
+    import json
+
+    from .orchestrator import RunState, latest_run
+
+    rd = latest_run(project.resolve())
+    if rd is None:
+        err.print("no runs found (start one with `cloop run`)")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    st = RunState.load(rd)
+    if as_json:
+        console.print_json(json.dumps(st.__dict__, default=str))
+        return
+    colors = {"passed": "green", "failed": "red", "tampered": "red", "error": "yellow", "running": "cyan"}
+    console.print(f"run: [bold]{rd}[/]")
+    console.print(f"status: [{colors.get(st.status, 'white')}]{st.status}[/]  {st.message}")
+    console.print(f"agent: {st.agent}   started: {st.started}   finished: {st.finished or '-'}")
+    t = Table(title="phases")
+    t.add_column("phase")
+    t.add_column("status")
+    t.add_column("iterations")
+    for ph in ("design", "harden", "reverify", "output"):
+        info = st.phases.get(ph, {})
+        n = sum(1 for i in st.iterations if i["phase"] == ph)
+        t.add_row(ph, info.get("status", "-"), str(n))
+    console.print(t)
+    for name in ("failure_report.md", "TAMPER_REPORT.md"):
+        if (rd / name).is_file():
+            console.print(f"see: {rd / name}")
+
+
 def main() -> None:
     app()
 
