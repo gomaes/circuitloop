@@ -22,31 +22,58 @@ class Check:
     hint: str = ""
 
 
-def distro_family(os_release: Path = Path("/etc/os-release")) -> str:
-    """Return 'apt', 'dnf', 'pacman' or 'unknown'."""
+_FAMILIES = {
+    "apt": {"debian", "ubuntu", "linuxmint", "pop", "raspbian"},
+    "dnf": {"fedora", "rhel", "centos", "rocky", "almalinux"},
+    "pacman": {"arch", "archarm", "manjaro", "endeavouros", "cachyos", "garuda", "artix"},
+}
+_PM_EXE = {"apt": "apt-get", "dnf": "dnf", "pacman": "pacman"}
+
+
+def distro_family(os_release: Path = Path("/etc/os-release"), probe: bool = True) -> str:
+    """Return 'apt', 'dnf', 'pacman' or 'unknown'.
+
+    Uses ID / ID_LIKE from os-release (Arch derivatives such as Manjaro, EndeavourOS
+    and CachyOS report ``ID_LIKE=arch``); falls back to the package manager on PATH.
+    """
+    tokens: set[str] = set()
     try:
-        text = os_release.read_text()
+        for line in os_release.read_text().splitlines():
+            if "=" in line and not line.startswith("#"):
+                key, val = line.split("=", 1)
+                if key in ("ID", "ID_LIKE"):
+                    tokens |= set(val.strip().strip('"').lower().split())
     except OSError:
-        return "unknown"
-    fields = dict(
-        line.split("=", 1) for line in text.splitlines() if "=" in line and not line.startswith("#")
-    )
-    ids = " ".join(fields.get(k, "").strip('"').lower() for k in ("ID", "ID_LIKE"))
-    if any(x in ids for x in ("ubuntu", "debian")):
-        return "apt"
-    if any(x in ids for x in ("fedora", "rhel", "centos")):
-        return "dnf"
-    if any(x in ids for x in ("arch", "manjaro")):
-        return "pacman"
+        pass
+    for fam, ids in _FAMILIES.items():
+        if tokens & ids:
+            return fam
+    if probe:
+        for fam, exe in _PM_EXE.items():
+            if shutil.which(exe):
+                return fam
     return "unknown"
 
 
-NGSPICE_HINTS = {
-    "apt": "sudo apt install ngspice",
-    "dnf": "sudo dnf install ngspice",
-    "pacman": "sudo pacman -S ngspice",
-    "unknown": "install ngspice from your distribution or https://ngspice.sourceforge.io/download.html",
+INSTALL_CMD = {
+    "apt": "sudo apt install {pkgs}",
+    "dnf": "sudo dnf install {pkgs}",
+    "pacman": "sudo pacman -S --needed {pkgs}",
 }
+# distro package names for the tools circuitloop needs
+PACKAGES = {
+    "ngspice": {"apt": "ngspice", "dnf": "ngspice", "pacman": "ngspice"},
+    "npm": {"apt": "nodejs npm", "dnf": "nodejs npm", "pacman": "nodejs npm"},
+}
+
+
+def install_hint(tool: str, fam: str) -> str:
+    pkgs = PACKAGES[tool].get(fam)
+    if fam in INSTALL_CMD and pkgs:
+        return INSTALL_CMD[fam].format(pkgs=pkgs)
+    if tool == "ngspice":
+        return "install ngspice from your distribution or https://ngspice.sourceforge.io/download.html"
+    return f"install {tool} with your distribution's package manager"
 
 
 def _version(cmd: list[str], pattern: str) -> str | None:
@@ -71,7 +98,7 @@ def run_checks(agent: str | None = None) -> list[Check]:
         v = _version(["ngspice", "--version"], r"ngspice-(\S+)")
         checks.append(Check("ngspice", True, True, f"ngspice {v}"))
     else:
-        checks.append(Check("ngspice", False, True, "not found in PATH", NGSPICE_HINTS[fam]))
+        checks.append(Check("ngspice", False, True, "not found in PATH", install_hint("ngspice", fam)))
 
     for mod in ("skidl", "matplotlib", "yaml", "pydantic", "typer"):
         ok = importlib.util.find_spec(mod) is not None
@@ -79,16 +106,17 @@ def run_checks(agent: str | None = None) -> list[Check]:
             Check(f"python:{mod}", ok, True, "importable" if ok else "missing", "reinstall: ./install.sh")
         )
 
+    npm_pre = "" if shutil.which("npm") else f"{install_hint('npm', fam)} && "
     agents = {
         "claude": (
             ["claude", "--version"],
             r"(\d+\.\d+\.\d+)",
-            "npm install -g @anthropic-ai/claude-code  (see https://docs.claude.com/claude-code)",
+            f"{npm_pre}npm install -g @anthropic-ai/claude-code  (see https://docs.claude.com/claude-code)",
         ),
         "opencode": (
             ["opencode", "--version"],
             r"(\d+\.\d+\.\d+)",
-            "npm install -g opencode-ai  (see https://opencode.ai/docs)",
+            f"{npm_pre}npm install -g opencode-ai  (see https://opencode.ai/docs)",
         ),
     }
     for name, (cmd, pat, hint) in agents.items():

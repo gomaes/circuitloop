@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import pytest
 from typer.testing import CliRunner
 
 from circuitloop.cli import app
-from circuitloop.doctor import distro_family
+from circuitloop.doctor import distro_family, install_hint
 from circuitloop.spec import load_spec
 
 runner = CliRunner()
@@ -36,7 +37,36 @@ def test_distro_family(tmp_path):
     assert distro_family(p) == "dnf"
     p.write_text("ID=arch\n")
     assert distro_family(p) == "pacman"
-    assert distro_family(tmp_path / "missing") == "unknown"
+    assert distro_family(tmp_path / "missing", probe=False) == "unknown"
+
+
+@pytest.mark.parametrize(
+    "release",
+    [
+        'NAME="Arch Linux"\nID=arch\nBUILD_ID=rolling\n',
+        'NAME="Manjaro Linux"\nID="manjaro"\nID_LIKE="arch"\n',
+        'NAME="EndeavourOS"\nID="endeavouros"\nID_LIKE="arch"\n',
+        'NAME="CachyOS Linux"\nID=cachyos\nID_LIKE=arch\n',
+        'NAME="Arch Linux ARM"\nID=archarm\nID_LIKE=arch\n',
+    ],
+)
+def test_arch_family(tmp_path, release):
+    p = tmp_path / "os-release"
+    p.write_text(release)
+    assert distro_family(p, probe=False) == "pacman"
+
+
+def test_no_false_arch_match(tmp_path):
+    p = tmp_path / "os-release"
+    p.write_text("ID=research-os\n")
+    assert distro_family(p, probe=False) == "unknown"
+
+
+def test_install_hints():
+    assert install_hint("ngspice", "pacman") == "sudo pacman -S --needed ngspice"
+    assert install_hint("npm", "pacman") == "sudo pacman -S --needed nodejs npm"
+    assert install_hint("ngspice", "apt") == "sudo apt install ngspice"
+    assert "ngspice.sourceforge.io" in install_hint("ngspice", "unknown")
 
 
 def test_doctor_runs():
