@@ -38,3 +38,21 @@ jobs:
           uv run cloop doctor --agent mock || true
           uv run cloop init /tmp/demo --example ldo_5v
           uv run cloop verify examples/ldo_5v/reference/hardened_design.py --spec examples/ldo_5v/spec.yaml --out /tmp/verify
+
+  test-arch:
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    steps:
+      - name: Install system packages (pacman)
+        run: pacman -Syu --noconfirm --needed git python ngspice uv which
+      - uses: actions/checkout@v4
+      - run: uv sync --python /usr/bin/python3
+      - run: uv run pytest -q
+      - name: install.sh on Arch Linux
+        run: |
+          # no agent CLI in CI: install.sh finishes with `cloop doctor`, which reports it (exit 2)
+          ./install.sh || test $? -eq 2
+          export PATH="$HOME/.local/bin:$PATH"
+          cloop doctor --agent mock
+          cloop init /tmp/demo --example ne555_blinker
+          cloop verify examples/ne555_blinker/reference/hardened_design.py --spec examples/ne555_blinker/spec.yaml --out /tmp/verify
