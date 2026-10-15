@@ -1,0 +1,58 @@
+# circuitloop specification. This file is READ-ONLY for the design agent and is
+# hashed at the start of every run; changing it mid-run aborts the run (exit 3).
+name: my_circuit
+description: >
+  Describe in plain language what the circuit must do.
+
+ground_net: GND
+power_input:
+  type: dc
+  pos_net: VIN        # net where + of the supply enters the board
+  neg_net: GND
+  v_min: 7.5
+  v_nom: 9.0
+  v_max: 12.0
+
+loads:                # attached by the simulation harness
+  - net: VOUT
+    current: 0.1      # A (or use 'resistance: <ohm>')
+
+transient:            # needed for ripple / frequency / gain criteria
+  stop: 20e-3
+  step: 10e-6
+  settle: 5e-3
+
+acceptance:           # every criterion is checked at v_min, v_nom and v_max
+  - type: dc_voltage
+    net: VOUT
+    min: 4.75
+    max: 5.25
+  - type: ripple
+    net: VOUT
+    max: 0.05
+  - type: input_power
+    max: 2.0
+
+derating:             # allowed fraction of each part's rating in normal operation
+  voltage: 0.8
+  current: 0.8
+  power: 0.5
+
+board:
+  type: perfboard
+  max_cols: 30
+  max_rows: 20
+
+parts_policy:
+  tht_only: true
+
+protection: [reverse_polarity, overcurrent]
+
+faults:               # protection must hold under these conditions
+  - name: reverse
+    kind: reverse_polarity
+    expect:
+      nets: {VOUT: {min: -0.5}}
+      abs_max_ratings: true
+
+allow_incomplete_sim: false

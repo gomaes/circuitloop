@@ -1,0 +1,12 @@
+# circuitloop pipeline settings (not read by the design agent's gates).
+[agent]
+backend = "claude"       # claude | opencode
+# model = "..."          # optional, passed to the backend CLI
+timeout = 1200           # seconds per agent call
+# max_budget_usd = 2.0   # claude only
+
+[loop]
+max_iter = 5             # fix attempts per phase
+design_timeout = 120     # seconds for running design.py
+sim_timeout = 300        # seconds per ngspice run
+review = true            # run the reviewer agent in Phase 3
