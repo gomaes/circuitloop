@@ -37,6 +37,7 @@ Kind = Literal[
     "opamp",
     "ptc",
     "fuse",
+    "inductor",
     "connector",
 ]
 
@@ -61,6 +62,11 @@ class Rating(_M):
     min: float | None = Field(None, description="voltage/current lower limit; default -max")
     pins: list[int] | None = Field(None, description="voltage: [a, b] -> V(a)-V(b)")
     pin: int | None = Field(None, description="current: current flowing into this pin")
+    mode: Literal["peak", "average", "rms"] = Field(
+        "peak",
+        description="current: compare the peak (default), the average (e.g. diode If(AV)) or the RMS value "
+        "(e.g. inductor/PTC rated current) over the steady-state window",
+    )
 
     @model_validator(mode="after")
     def _shape(self) -> Rating:

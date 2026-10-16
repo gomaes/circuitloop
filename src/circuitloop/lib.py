@@ -48,6 +48,7 @@ _PREFIX = {
     "opamp": "U",
     "ptc": "F",
     "fuse": "F",
+    "inductor": "L",
     "connector": "J",
 }
 _db: PartsDB | None = None

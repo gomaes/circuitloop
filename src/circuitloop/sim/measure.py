@@ -8,13 +8,14 @@ Steady state is defined as:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
 
 from ..netlist import Netlist
 from ..partsdb import PartsDB, Rating
-from ..spec import DcVoltage, Frequency, Gain, InputPower, Ripple, Spec
+from ..spec import DcVoltage, Frequency, Gain, InputCurrent, InputPower, Ripple, Spec
 from .ngspice import SimResult
 from .spice import SRC, ammeter, node_name, pin_node
 
@@ -136,6 +137,10 @@ def measure_criterion(c, wf: Waveforms) -> Measured:
             _in(val, c.min, c.max),
             "" if v is not None else f"net {c.net} not found",
         )
+    if isinstance(c, InputCurrent):
+        i = wf.i(SRC)
+        val = wf.mean(-i) if i is not None else None
+        return Measured(key, val, _limit(None, c.max, "A"), _in(val, None, c.max))
     if isinstance(c, InputPower):
         val = input_power(wf)
         return Measured(key, val, _limit(None, c.max, "W"), _in(val, None, c.max))
@@ -218,8 +223,14 @@ def _check_one(ref: str, pd, r: Rating, wf: Waveforms, factors: dict[str, float]
         if x is None:
             return None
         lo, hi = r.lower * f, r.max * f
+        if r.mode == "average":
+            x = np.array([wf.mean(x)])
+        elif r.mode == "rms":
+            x = np.array([math.sqrt(max(wf.mean(x * x), 0.0))])
+            lo = 0.0
         peak, ok = _extreme(x, lo, hi, 1e-12)
-        return RatingCheck(ref, pd.key, f"current I(pin {r.pin})", peak, lo, hi, ok)
+        label = f"current I(pin {r.pin})" + ("" if r.mode == "peak" else f" {r.mode}")
+        return RatingCheck(ref, pd.key, label, peak, lo, hi, ok)
     total = None
     for num in pd.pins:
         v, i = wf.v_node(pin_node(ref, num)), wf.i(ammeter(ref, num))
@@ -228,6 +239,7 @@ def _check_one(ref: str, pd, r: Rating, wf: Waveforms, factors: dict[str, float]
         total = v * i if total is None else total + v * i
     if total is None:
         return None
+    # power ratings are thermal: compare the average dissipation over the steady-state window
     hi = r.max * f
-    peak = float(np.max(total))
-    return RatingCheck(ref, pd.key, "power", peak, None, hi, bool(peak <= hi + 1e-12))
+    avg = wf.mean(total)
+    return RatingCheck(ref, pd.key, "power (average)", avg, None, hi, bool(avg <= hi + 1e-12))
