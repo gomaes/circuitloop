@@ -174,7 +174,7 @@ def verify(
     base = None
     if baseline is not None:
         base = json.loads(baseline.read_text())
-    outdir = out or design.resolve().parent / "verify"
+    outdir = (out or design.resolve().parent / "verify").resolve()
     ctx = VerifyContext(
         sp,
         db,

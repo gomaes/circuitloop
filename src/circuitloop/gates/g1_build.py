@@ -39,6 +39,8 @@ def run_g1(
     parts_path: str | None = None,
     timeout: int = 120,
 ) -> BuildOutput:
+    # design.py runs with cwd=out_dir, so every path handed to it must be absolute
+    out_dir, design, project_dir = out_dir.resolve(), design.resolve(), project_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     netlist_path = out_dir / "circuit.net"
     if netlist_path.exists():

@@ -33,3 +33,18 @@ def test_verify_bad_spec(tmp_path):
     s.write_text("name: x\n")
     r = runner.invoke(app, ["verify", str(d), "--spec", str(s)])
     assert r.exit_code == 2
+
+
+@needs_ngspice
+def test_verify_relative_out_dir(tmp_path, monkeypatch):
+    """Regression: agents call `cloop verify design.py --out check` with a relative path."""
+    import shutil
+
+    shutil.copy(EXAMPLES / "ldo_5v" / "spec.yaml", tmp_path / "spec.yaml")
+    shutil.copy(EXAMPLES / "ldo_5v" / "reference" / "phase1_design.py", tmp_path / "design.py")
+    monkeypatch.chdir(tmp_path)
+    r = runner.invoke(
+        app, ["verify", "design.py", "--spec", "spec.yaml", "--phase", "design", "--quick", "--out", "check"]
+    )
+    assert r.exit_code == 0, r.output
+    assert (tmp_path / "check" / "build" / "circuit.net").is_file()
