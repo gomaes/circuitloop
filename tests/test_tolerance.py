@@ -69,3 +69,11 @@ def test_monte_carlo_and_disable(tmp_path):
         tmp_path / "b", "opamp_x10", reference("opamp_x10", "hardened"), phase=3, faults=True, spec_path=p
     )
     assert _gate(out).status == Status.PASS and "disabled" in _gate(out).notes[0]
+
+
+def test_retry_ladder_ends_with_cshunt():
+    from circuitloop.sim.ngspice import RETRY_OPTIONS, _with_options
+
+    assert RETRY_OPTIONS[0] == "" and "cshunt" in RETRY_OPTIONS[-1]
+    deck = "* t\n.options rshunt=1e12\nR1 a 0 1\n.end\n"
+    assert _with_options(deck, ".options method=gear").splitlines()[2] == ".options method=gear"

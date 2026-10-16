@@ -68,7 +68,14 @@ def parse_raw(path: Path) -> Plot:
 
 # Fallback integrator settings tried when a transient aborts with "timestep too small"
 # (typical for hard-switching circuits); results of a successful retry are equally valid.
-RETRY_OPTIONS = ("", ".options method=gear", ".options method=gear reltol=0.003 chgtol=1e-12")
+RETRY_OPTIONS = (
+    "",
+    ".options method=gear",
+    ".options method=gear reltol=0.003 chgtol=1e-12",
+    # last resort: 1 pF from every node to ground (electrically negligible here) damps
+    # the numerically stiff switch-node edges that otherwise abort the transient
+    ".options cshunt=1e-12",
+)
 
 
 def _with_options(deck_text: str, extra: str) -> str:
