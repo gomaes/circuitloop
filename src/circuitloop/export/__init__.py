@@ -19,6 +19,7 @@ from .bom import write_bom
 from .guide import build_guide
 from .plots import plot_waveforms
 from .schematic import schematic_svg
+from .shopping import shopping_items, write_shopping_list
 
 
 @dataclass
@@ -125,6 +126,7 @@ def export_all(
             "jumpers": [{"net": j.net, "a": list(j.a), "b": list(j.b)} for j in lay.jumpers],
         }
         (out_dir / "layout.json").write_text(json.dumps(layout_json, indent=1))
+        files += list(write_shopping_list(shopping_items(nl, db, layout_json), out_dir, spec.name))
         (out_dir / "layout.html").write_text(_html_page(spec, top, bottom, rows, guide, lay, nl))
         files += [
             out_dir / n

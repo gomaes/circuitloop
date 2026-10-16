@@ -28,6 +28,9 @@ AgentOpt = Annotated[
 ]
 MaxIterOpt = Annotated[int | None, typer.Option("--max-iter", min=1, help="Fix attempts per phase")]
 VerboseOpt = Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output")]
+JobsOpt = Annotated[
+    int | None, typer.Option("--jobs", "-j", min=1, help="Parallel ngspice processes (default: automatic)")
+]
 
 
 def _version_cb(value: bool) -> None:
@@ -138,6 +141,13 @@ def verify(
     out: Annotated[
         Path | None, typer.Option(help="Directory for reports (default: <design dir>/verify)")
     ] = None,
+    quick: Annotated[
+        bool,
+        typer.Option(
+            "--quick", help="Fast self-check: nominal supply only, no faults/regression (not authoritative)"
+        ),
+    ] = False,
+    jobs: JobsOpt = None,
     verbose: VerboseOpt = False,
 ) -> None:
     """Run the verification gates only (e.g. on a hand-edited design)."""
@@ -166,7 +176,12 @@ def verify(
         base = json.loads(baseline.read_text())
     outdir = out or design.resolve().parent / "verify"
     ctx = VerifyContext(
-        sp, db, project, design_timeout=cfg.loop.design_timeout, sim_timeout=cfg.loop.sim_timeout
+        sp,
+        db,
+        project,
+        design_timeout=cfg.loop.design_timeout,
+        sim_timeout=cfg.loop.sim_timeout,
+        sim_jobs=jobs or cfg.loop.sim_jobs,
     )
     final = phase == "final"
     res = run_verify(
@@ -176,7 +191,8 @@ def verify(
         phase=3 if final else 1,
         baseline=base,
         faults=final,
-        phase_label=f"cloop verify ({phase})",
+        phase_label=f"cloop verify ({phase}{', quick' if quick else ''})",
+        quick=quick,
     )
     j, m = res.report.write(outdir)
     if verbose:
@@ -266,6 +282,47 @@ def parts_add(
         console.print(f"added [bold]{k}[/] -> {dest}{note}")
 
 
+@app.command("shopping-list")
+def shopping_list(
+    project: Annotated[Path, typer.Argument(help="Project directory (uses its output/)")] = Path("."),
+    boards: Annotated[int, typer.Option(min=1, help="Number of boards to build")] = 1,
+    spares: Annotated[
+        float, typer.Option(min=0, help="Extra fraction for small parts, e.g. 0.1 = +10 % (at least +1)")
+    ] = 0.0,
+    as_json: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """List everything to buy for the final design: components, IC sockets, perfboard and wire."""
+    import json
+    from dataclasses import asdict
+
+    from .export.shopping import load_layout, shopping_items, write_shopping_list
+    from .netlist import NetlistError, read_netlist
+    from .partsdb import load_db
+
+    out = project / "output"
+    nets = sorted(out.glob("*.net"))
+    if not nets:
+        err.print(f"[red]error:[/] no netlist in {out} (run `cloop run` first)")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    try:
+        nl = read_netlist(nets[0])
+    except NetlistError as e:
+        err.print(f"[red]error:[/] {e}")
+        raise typer.Exit(EXIT_ENV_ERROR) from e
+    items = shopping_items(nl, load_db(project.resolve()), load_layout(out / "layout.json"), boards, spares)
+    if as_json:
+        console.print_json(json.dumps([asdict(i) for i in items]))
+        return
+    t = Table(title=f"shopping list — {nets[0].stem} × {boards} board(s)")
+    for col in ("item", "value", "qty", "part number", "refs / note"):
+        t.add_column(col)
+    for i in items:
+        t.add_row(i.name, i.value, f"{i.qty:g} {i.unit}", i.mpn, i.note)
+    console.print(t)
+    csv_path, md_path = write_shopping_list(items, out, nets[0].stem, boards)
+    console.print(f"written: {csv_path}, {md_path}")
+
+
 def _resolve_agent(cfg, agent: str | None) -> None:
     if agent is not None:
         if agent not in ("claude", "opencode", "mock"):
@@ -285,6 +342,7 @@ def run(
     ] = None,
     agent: AgentOpt = None,
     max_iter: MaxIterOpt = None,
+    jobs: JobsOpt = None,
     verbose: VerboseOpt = False,
 ) -> None:
     """Run the full pipeline unattended: design -> verify -> harden -> re-verify -> output."""
@@ -299,6 +357,8 @@ def run(
     _resolve_agent(cfg, agent)
     if max_iter is not None:
         cfg.loop.max_iter = max_iter
+    if jobs is not None:
+        cfg.loop.sim_jobs = jobs
     try:
         backend = make_backend(cfg.agent)
     except AgentError as e:
