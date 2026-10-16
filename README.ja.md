@@ -158,7 +158,8 @@ ls output/
 - `transient`: `stop`、`step`、`settle`。
   - この項目があるときは、電源投入から始めて `t ≥ settle` の定常区間ですべてを測定します。
   - ないときは DC 動作点で判定します。収束しなかった場合はエラーにします。
-- `acceptance`: 合格基準。`dc_voltage`、`ripple`、`frequency`、`gain`、`input_power` が使えます。
+- `acceptance`: 合格基準。`dc_voltage`、`ripple`、`frequency`、`gain`、`input_power`、`input_current` が使えます。
+- `transient.save_step` / `transient.save_window_only`: 出力を間引き、定常区間だけを保存します。スイッチング電源のように長時間のシミュレーションが必要な場合に使います（例: `examples/usb_boost_12v`）。
 - `derating`: 通常動作時に、各部品の定格の何割まで使ってよいか。
 - `board`: 基板サイズの上限（穴数）。
 - `parts_policy`: 部品の制約（`tht_only`、`forbidden`）。
@@ -228,7 +229,9 @@ def check(ctx):
 - 基板上のパッケージ
 - SPICE モデル（`primitive`、`subckt`、`equivalent`、`connector` のいずれか）
 
-DB に登録されていない部品は ERC エラーになります。同梱の SPICE モデルは、データシートの代表的な特性を circuitloop 独自に動作モデル化したもので、メーカー提供のモデルではありません。
+DB に登録されていない部品は ERC エラーになります。
+
+電流定格は、ピーク値（デフォルト）、平均値（`average`。ダイオードの If(AV) など）、実効値（`rms`。インダクタやコンデンサのリップル電流、PTC の保持電流など）のいずれで判定するかを部品ごとに指定できます。電力定格は熱的な定格なので、定常区間の平均消費電力で判定します。同梱の SPICE モデルは、データシートの代表的な特性を circuitloop 独自に動作モデル化したもので、メーカー提供のモデルではありません。
 
 ## ユニバーサル基板の配置配線
 

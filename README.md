@@ -149,7 +149,9 @@ See [`src/circuitloop/templates/spec.yaml`](src/circuitloop/templates/spec.yaml)
 - `transient` — `stop`, `step`, `settle`. With a transient section, all measurements use the
   steady-state window `t ≥ settle` after a power-on start; otherwise the DC operating point is used
   (and must converge).
-- `acceptance` — `dc_voltage`, `ripple`, `frequency`, `gain`, `input_power`.
+- `acceptance` — `dc_voltage`, `ripple`, `frequency`, `gain`, `input_power`, `input_current`.
+- `transient.save_step` / `transient.save_window_only` — resample and store only the steady-state
+  window; use them for switching converters (see `examples/usb_boost_12v`).
 - `derating` — fraction of each part's rating allowed in normal operation.
 - `board` — maximum perfboard size in holes; `parts_policy` — `tht_only`, `forbidden`.
 - `protection` — `reverse_polarity`, `overcurrent`, `overvoltage`, `esd`, `input_protection`.
@@ -197,7 +199,9 @@ Project rules are hashed like the spec; agents cannot add or edit them.
 YAML files in `parts/` (bundled), `~/.config/circuitloop/parts/` and `<project>/parts/`. Each part
 has pins (name/type), absolute-maximum ratings, optional decoupling requirements, a perfboard
 package and a SPICE model (`primitive`, `subckt`, `equivalent` or `connector`). Parts that are not
-registered are an ERC error. The bundled SPICE models are circuitloop's own behavioural models of
+registered are an ERC error. Current ratings can be checked as `peak` (default), `average`
+(e.g. a diode's If(AV)) or `rms` (inductor / capacitor ripple / PTC hold current); power ratings are
+thermal and are compared with the average dissipation over the steady-state window. The bundled SPICE models are circuitloop's own behavioural models of
 typical datasheet behaviour — not vendor models.
 
 ## Perfboard layout

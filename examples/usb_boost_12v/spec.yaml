@@ -1,0 +1,64 @@
+name: usb_boost_12v
+description: >
+  Step-up (boost) converter that turns a USB 5 V supply (USB charger rated
+  5 V / 2.4 A, 4.75-5.25 V at the board) into a regulated 12 V rail for a
+  0.5 A (6 W) load. The input must never draw more than the charger's 2.4 A,
+  and the USB input needs overcurrent protection. Through-hole parts only.
+
+ground_net: GND
+power_input:
+  type: dc
+  pos_net: VBUS
+  neg_net: GND
+  v_min: 4.75
+  v_nom: 5.0
+  v_max: 5.25
+  source_resistance: 0.15      # charger + USB cable
+
+loads:
+  - net: VOUT
+    resistance: 24             # 12 V / 0.5 A
+
+transient:                     # switching simulation: record only the steady-state window
+  stop: 30e-3
+  step: 0.2e-6
+  settle: 25e-3
+  save_step: 0.5e-6
+  save_window_only: true
+
+acceptance:
+  - type: dc_voltage
+    net: VOUT
+    min: 11.4
+    max: 12.6
+  - type: ripple
+    net: VOUT
+    max: 0.15
+  - type: input_current        # USB charger limit 2.4 A (with margin)
+    max: 2.2
+  - type: input_power
+    max: 10.0
+
+derating:
+  voltage: 0.8
+  current: 0.8
+  power: 0.5
+
+board:
+  type: perfboard
+  max_cols: 34
+  max_rows: 26
+
+parts_policy:
+  tht_only: true
+
+protection: [overcurrent]
+
+faults:
+  - name: overvoltage_6v       # faulty charger
+    kind: overvoltage
+    voltage: 6.0
+    expect:
+      nets:
+        VOUT: {max: 15.0}
+      abs_max_ratings: true
