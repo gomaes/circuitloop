@@ -54,7 +54,9 @@ def test_claude_backend(fake_bin):
     assert argv[0] == "-p"
     assert argv[argv.index("--permission-mode") + 1] == "dontAsk"
     allowed = argv[argv.index("--allowedTools") + 1]
-    assert "Edit(./design.py)" in allowed and "Bash(cloop verify *)" in allowed
+    design = (fake_bin / "work" / "design.py").resolve()
+    assert f"Edit(/{design})" in allowed and allowed.count("Edit(//") == 1
+    assert "Bash(cloop verify *)" in allowed
     assert "Write" not in allowed.split(",")
     assert argv[argv.index("--model") + 1] == "sonnet"
     assert "TASK.md" in log["stdin"]
@@ -77,7 +79,7 @@ def test_reviewer_has_no_bash(fake_bin):
     t = AgentTask("reviewer", "x", fake_bin / "w2", ["review.md"], fake_bin / "l2", 30)
     cmd = ClaudeBackend().command(t)
     allowed = cmd[cmd.index("--allowedTools") + 1]
-    assert "Bash" not in allowed and "Edit(./review.md)" in allowed
+    assert "Bash" not in allowed and f"Edit(/{(fake_bin / 'w2' / 'review.md').resolve()})" in allowed
     assert OpenCodeBackend().permission_config(t)["permission"]["bash"] == {"*": "deny"}
 
 

@@ -18,7 +18,9 @@ class ClaudeBackend(AgentBackend):
     executable = "claude"
 
     def command(self, task: AgentTask) -> list[str]:
-        allowed = ["Read", "Grep", "Glob"] + [f"Edit(./{w})" for w in task.writable]
+        # Anchor the writable files absolutely ("//" prefix): a "./" rule is resolved against the
+        # session's *current* directory, which moves when the agent runs commands elsewhere.
+        allowed = ["Read", "Grep", "Glob"] + [f"Edit(/{(task.workdir / w).resolve()})" for w in task.writable]
         if task.role == "designer":
             allowed.append("Bash(cloop verify *)")
         cmd = [
