@@ -30,6 +30,9 @@ class LoopConfig(BaseModel):
     max_iter: int = Field(5, ge=1, le=50)
     design_timeout: int = Field(120, gt=0, description="Seconds allowed for running design.py")
     sim_timeout: int = Field(300, gt=0, description="Seconds allowed per ngspice run")
+    sim_jobs: int | None = Field(
+        None, ge=1, description="Parallel ngspice processes (default: automatic = min(CPUs, scenarios))"
+    )
     review: bool = True
 
 

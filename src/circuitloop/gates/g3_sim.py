@@ -11,6 +11,7 @@ from ..netlist import Netlist
 from ..partsdb import PartsDB
 from ..sim.measure import RatingCheck, Waveforms, check_ratings, measure_criterion
 from ..sim.ngspice import SimError, run_ngspice
+from ..sim.pool import SimFn
 from ..sim.spice import SRC, Scenario, build_deck
 from ..spec import Spec
 from .base import Finding, GateResult, Severity, Status, status_from
@@ -43,13 +44,23 @@ def _deck_notes(deck, spec: Spec, findings: list[Finding], notes: list[str]) -> 
         notes.append(
             f"connectors treated as ideal wiring (not rated in simulation): {', '.join(deck.connectors)}"
         )
+    if len(deck.compat) > 1:
+        findings.append(
+            Finding(
+                "sim.compat",
+                Severity.ERROR,
+                f"parts need conflicting ngspice compatibility modes {sorted(deck.compat)}; only one can be active",
+                hint="Use models that work in the same mode (e.g. all PSpice) or convert one of them.",
+            )
+        )
     if deck.missing_model:
         sev = Severity.WARNING if spec.allow_incomplete_sim else Severity.ERROR
         findings.append(
             Finding(
                 "sim.incomplete",
                 sev,
-                f"no SPICE or equivalent model for {', '.join(deck.missing_model)}: simulation is INCOMPLETE",
+                f"no SPICE or equivalent model (or its model file is missing) for {', '.join(deck.missing_model)}: "
+                "simulation is INCOMPLETE",
                 refs=list(deck.missing_model),
                 hint="Add a spice: entry (primitive/subckt/equivalent) for these parts in the parts DB.",
             )
@@ -58,7 +69,29 @@ def _deck_notes(deck, spec: Spec, findings: list[Finding], notes: list[str]) -> 
     return False
 
 
-def run_g3(nl: Netlist, db: PartsDB, spec: Spec, workdir: Path, timeout: int = 300) -> SimOutput:
+def g3_scenarios(spec: Spec, quick: bool = False) -> list[tuple[str, Scenario]]:
+    """(directory name, scenario) for every supply corner; quick = nominal supply only."""
+    corners = {"vnom": spec.power_input.v_nom} if quick else spec.power_input.corners()
+    return [(name, Scenario(name=f"{name}={vin:g}V", vin=vin)) for name, vin in corners.items()]
+
+
+def fault_scenarios(spec: Spec) -> list[tuple[str, Scenario]]:
+    out = []
+    for f in spec.effective_faults():
+        vin = f.voltage if f.voltage is not None else spec.power_input.v_nom
+        out.append((f.name, Scenario(name=f"fault:{f.name}", vin=vin, fault=f)))
+    return out
+
+
+def run_g3(
+    nl: Netlist,
+    db: PartsDB,
+    spec: Spec,
+    workdir: Path,
+    timeout: int = 300,
+    sim_fn: SimFn = run_ngspice,
+    quick: bool = False,
+) -> SimOutput:
     findings: list[Finding] = []
     notes: list[str] = []
     criteria: list[dict] = []
@@ -70,13 +103,14 @@ def run_g3(nl: Netlist, db: PartsDB, spec: Spec, workdir: Path, timeout: int = 3
         "power": spec.derating.power,
     }
     incomplete = False
-    for name, vin in spec.power_input.corners().items():
-        sc = Scenario(name=f"{name}={vin:g}V", vin=vin)
+    if quick:
+        notes.append("quick check: nominal supply only, faults not simulated — not the authoritative result")
+    for k, (name, sc) in enumerate(g3_scenarios(spec, quick)):
         deck = build_deck(nl, db, spec, sc)
-        if name == next(iter(spec.power_input.corners())):
+        if k == 0:
             incomplete = _deck_notes(deck, spec, findings, notes)
         try:
-            simres = run_ngspice(deck.text, workdir / name, timeout)
+            simres = sim_fn(deck.text, workdir / name, timeout)
         except SimError as e:
             findings.append(
                 Finding(
@@ -143,7 +177,9 @@ def run_g3(nl: Netlist, db: PartsDB, spec: Spec, workdir: Path, timeout: int = 3
     return out
 
 
-def run_faults(nl: Netlist, db: PartsDB, spec: Spec, workdir: Path, timeout: int = 300) -> GateResult:
+def run_faults(
+    nl: Netlist, db: PartsDB, spec: Spec, workdir: Path, timeout: int = 300, sim_fn: SimFn = run_ngspice
+) -> GateResult:
     findings: list[Finding] = []
     criteria: list[dict] = []
     notes: list[str] = []
@@ -151,9 +187,8 @@ def run_faults(nl: Netlist, db: PartsDB, spec: Spec, workdir: Path, timeout: int
     if not faults:
         return GateResult("G5", "fault injection", Status.PASS, notes=["no faults defined in spec"])
     abs_max = {"voltage": 1.0, "current": 1.0, "power": 1.0}
-    for f in faults:
-        vin = f.voltage if f.voltage is not None else spec.power_input.v_nom
-        sc = Scenario(name=f"fault:{f.name}", vin=vin, fault=f)
+    for _, sc in fault_scenarios(spec):
+        f = sc.fault
         deck = build_deck(nl, db, spec, sc)
         if deck.missing_model:
             findings.append(
@@ -165,7 +200,7 @@ def run_faults(nl: Netlist, db: PartsDB, spec: Spec, workdir: Path, timeout: int
             )
             continue
         try:
-            simres = run_ngspice(deck.text, workdir / f.name, timeout)
+            simres = sim_fn(deck.text, workdir / f.name, timeout)
         except SimError as e:
             findings.append(Finding("fault.ngspice", Severity.ERROR, f"[{sc.name}] {e}"))
             continue
