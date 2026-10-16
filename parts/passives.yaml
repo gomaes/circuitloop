@@ -37,6 +37,7 @@ C_CER_50V:
   footprint: Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm
   mpn: "MLCC 50V X7R {value}"
   value: required
+  value_max: 10.0e-6
   pins:
     1: {name: "1"}
     2: {name: "2"}
@@ -59,12 +60,13 @@ C_FILM_100V:
   spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
 
 C_ELEC_16V:
-  description: Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, polarised (pin 1 = +)
+  description: Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, 5-6.3 mm body, up to 100 uF, polarised (pin 1 = +)
   kind: electrolytic
   package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
   mpn: "Electrolytic 16V {value}"
   value: required
+  value_max: 100.0e-6
   pins:
     1: {name: POS}
     2: {name: NEG}
@@ -73,12 +75,13 @@ C_ELEC_16V:
   spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
 
 C_ELEC_25V:
-  description: Aluminium electrolytic capacitor, 25 V, radial 2.5 mm, polarised (pin 1 = +)
+  description: Aluminium electrolytic capacitor, 25 V, radial 2.5 mm, 5-6.3 mm body, up to 100 uF, polarised (pin 1 = +)
   kind: electrolytic
   package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
   mpn: "Electrolytic 25V {value}"
   value: required
+  value_max: 100.0e-6
   pins:
     1: {name: POS}
     2: {name: NEG}
@@ -87,12 +90,13 @@ C_ELEC_25V:
   spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
 
 C_ELEC_35V:
-  description: Aluminium electrolytic capacitor, 35 V, radial 2.5 mm, polarised (pin 1 = +)
+  description: Aluminium electrolytic capacitor, 35 V, radial 2.5 mm, 5-6.3 mm body, up to 100 uF, polarised (pin 1 = +)
   kind: electrolytic
   package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D6.3mm_P2.50mm
   mpn: "Electrolytic 35V {value}"
   value: required
+  value_max: 100.0e-6
   pins:
     1: {name: POS}
     2: {name: NEG}

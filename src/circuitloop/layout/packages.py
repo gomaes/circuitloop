@@ -33,12 +33,16 @@ def _span(n: int) -> tuple[tuple[int, int], ...]:
 
 
 def _disc10() -> tuple[tuple[int, int], ...]:
-    """Holes covered by a 10 mm disc centred between pads (0, 0) and (2, 0)."""
+    """Keep-out for a 10 mm disc centred between pads (0, 0) and (2, 0).
+
+    Radius 2.5 holes (6.35 mm) instead of 1.97: clearance is checked on hole centres only,
+    so the margin keeps neighbouring bodies from overlapping between holes.
+    """
     return tuple(
         (x, y)
-        for x in range(-1, 4)
-        for y in range(-2, 3)
-        if (x - 1) ** 2 + y**2 <= 4 and (x, y) not in ((0, 0), (2, 0))
+        for x in range(-2, 5)
+        for y in range(-3, 4)
+        if (x - 1) ** 2 + y**2 <= 6.25 and (x, y) not in ((0, 0), (2, 0))
     )
 
 
@@ -50,7 +54,9 @@ PACKAGES: dict[str, Package] = {
     "radial_100": Package("radial_100", {1: (0, 0), 2: (1, 0)}, (), "radial", 2),
     "radial_200": Package("radial_200", {1: (0, 0), 2: (2, 0)}, ((1, 0),), "radial", 2),
     # radial electrolytic, 5-6.3 mm diameter: keep the rows above/below free of other parts
-    "ecap_d5": Package("ecap_d5", {1: (0, 0), 2: (1, 0)}, ((0, -1), (1, -1), (0, 1), (1, 1)), "ecap", 3),
+    "ecap_d5": Package(
+        "ecap_d5", {1: (0, 0), 2: (1, 0)}, ((0, -1), (1, -1), (0, 1), (1, 1), (-1, 0), (2, 0)), "ecap", 3
+    ),
     # 10 mm diameter radial parts (electrolytics, power inductors), 5.08 mm pitch
     "ecap_d10": Package("ecap_d10", {1: (0, 0), 2: (2, 0)}, _disc10(), "ecap", 4),
     "ind_r10": Package("ind_r10", {1: (0, 0), 2: (2, 0)}, _disc10(), "inductor", 4),

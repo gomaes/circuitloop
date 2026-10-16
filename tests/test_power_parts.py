@@ -80,3 +80,13 @@ def test_boost_without_current_limit_resistor_rated(tmp_path):
     out = run_design(tmp_path, "usb_boost_12v", code)
     assert any("R1" in f.refs for f in out.report.gate("G3").errors())
     assert "ratings.derating" in rules_hit(out, "G3")
+
+
+def test_value_range_enforced():
+    from circuitloop.partsdb import check_value
+
+    db = load_db()
+    assert "above the range" in check_value(db["C_ELEC_16V"], "470u")
+    assert check_value(db["C_ELEC_16V"], "100u") is None
+    assert "below the range" in check_value(db["C_ELEC_25V_D10"], "10u")
+    assert check_value(db["C_ELEC_25V_D10"], "1000u") is None

@@ -121,6 +121,8 @@ C_ELEC_25V_D10:
   footprint: Capacitor_THT:CP_Radial_D10.0mm_P5.00mm
   mpn: "Low-ESR electrolytic 25V {value} D10"
   value: required
+  value_min: 100.0e-6
+  value_max: 1000.0e-6
   pins:
     1: {name: POS}
     2: {name: NEG}

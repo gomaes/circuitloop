@@ -109,6 +109,8 @@ class PartDef(_M):
     footprint: str
     mpn: str
     value: Literal["required", "fixed"] = "fixed"
+    value_min: float | None = Field(None, description="smallest allowed value (the package fits this range)")
+    value_max: float | None = Field(None, description="largest allowed value (the package fits this range)")
     pins: dict[int, PinDef]
     ratings: list[Rating] = Field(min_length=1)
     decoupling: list[Decoupling] = Field(default_factory=list)
@@ -214,7 +216,14 @@ def check_value(pd: PartDef, value: str | None) -> str | None:
         if not value:
             return f"{pd.key} requires a value"
         try:
-            parse_value(value)
+            v = parse_value(value)
         except ValueError as e:
             return str(e)
+        if pd.value_min is not None and v < pd.value_min * (1 - 1e-9):
+            return f"{pd.key}: value {value} is below the range of this part ({pd.value_min:g})"
+        if pd.value_max is not None and v > pd.value_max * (1 + 1e-9):
+            return (
+                f"{pd.key}: value {value} is above the range of this part ({pd.value_max:g}); "
+                "a larger value needs a bigger body/package — use another part"
+            )
     return None

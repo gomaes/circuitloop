@@ -36,12 +36,23 @@ def plot_waveforms(
             plt.close(fig)
             continue
         lo, hi = limits.get(net, (None, None))
-        for v in (lo, hi):
-            if v is not None:
+        ymin, ymax = ax.get_ylim()
+        span = max(ymax - ymin, 1e-6)
+        for v in (lo, hi):  # draw limits only when they do not flatten the trace
+            if v is not None and ymin - 0.5 * span <= v <= ymax + 0.5 * span:
                 ax.axhline(v, color=MUTED, lw=1, ls="--")
-        ax.axvspan(0, settle * scale, color=GRID, alpha=0.6, lw=0)
-        ax.text(settle * scale, ax.get_ylim()[1], " measurement window →", color=MUTED, fontsize=8, va="top")
-        ax.set_title(f"V({net})", color=INK, fontsize=11, loc="left")
+        t0 = min(d["time"][0] for d in traces.values() if d.get("time"))
+        if t0 < settle:  # start-up was recorded: shade it
+            ax.axvspan(t0 * scale, settle * scale, color=GRID, alpha=0.6, lw=0)
+            ax.text(
+                settle * scale, ax.get_ylim()[1], " measurement window →", color=MUTED, fontsize=8, va="top"
+            )
+        lim = (
+            ""
+            if lo is None and hi is None
+            else f"   (limits {'' if lo is None else f'{lo:g}'}..{'' if hi is None else f'{hi:g}'} V)"
+        )
+        ax.set_title(f"V({net}){lim}", color=INK, fontsize=11, loc="left")
         ax.set_xlabel(f"time [{unit}]", color=MUTED)
         ax.set_ylabel("voltage [V]", color=MUTED)
         ax.grid(True, color=GRID, lw=0.8)
