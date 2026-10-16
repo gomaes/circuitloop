@@ -18,8 +18,12 @@ $spec
 Read `ref/skidl_guide.md` (API and a complete example) and `ref/parts_catalog.md`
 (available parts, pins, ratings, decoupling requirements).
 
-## Self-check (optional but recommended)
+## Self-check (optional)
 
-    cloop verify design.py --spec ref/spec.yaml --phase design --out check
+    cloop verify design.py --spec ref/spec.yaml --phase design --quick --out check
+
+`--quick` simulates the nominal supply only (fast). Do not run long verifications in the
+background or wait on timers: as soon as you stop, the pipeline runs the complete,
+authoritative verification (all supply corners and fault cases) and reports back.
 
 The verifier report explains every failure.
