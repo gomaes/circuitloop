@@ -155,7 +155,7 @@ def test_g3_wrong_gain(tmp_path):
 
 
 def test_g3_wrong_frequency(tmp_path):
-    out = run_design(tmp_path, "ne555_blinker", NE555_P1.replace('"10u", ref="C1"', '"47u", ref="C1"'))
+    out = run_design(tmp_path, "ne555_blinker", NE555_P1.replace('"1u", ref="C1"', '"2.2u", ref="C1"'))
     assert any("frequency_OUT" in f.message for f in out.report.gate("G3").findings)
 
 

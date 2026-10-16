@@ -23,10 +23,10 @@ transient:
   settle: 2e-3
 
 acceptance:
-  - type: dc_voltage
+  - type: dc_voltage          # +/-5 %: covers the regulator's own +/-3 % tolerance
     net: VOUT
-    min: 4.85
-    max: 5.15
+    min: 4.75
+    max: 5.25
   - type: ripple
     net: VOUT
     max: 0.02

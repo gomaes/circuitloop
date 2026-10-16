@@ -21,7 +21,8 @@ rpd = part("R_1/4W", "220", ref="R3")  # gate pull-down (turn-off path)
 u1 = part("MC34063", ref="U1")
 c3 = part("C_CER_50V", "470p", ref="C3")  # timing capacitor
 d1 = part("1N5822", ref="D1")
-c4 = part("C_ELEC_25V_D10", "470u", ref="C4")  # output
+c4 = part("C_ELEC_25V_D10", "470u", ref="C4")  # output: two in parallel halve the ESR, which
+c6 = part("C_ELEC_25V_D10", "470u", ref="C6")  # dominates the ripple (Ipk x ESR), not the capacitance
 c5 = part("C_CER_50V", "100n", ref="C5")
 r4 = part("R_1/4W", "13k", ref="R4")  # feedback divider
 r5 = part("R_1/4W", "1.5k", ref="R5")
@@ -33,8 +34,8 @@ sw += l1[2], q1["D"], d1["A"]
 drv += u1["SWE"], rg[1]
 gate += rg[2], q1["G"], rpd[1]
 ct += u1["CT"], c3[1]
-vout += d1["K"], c4["POS"], c5[1], r4[1], j2[1]
+vout += d1["K"], c4["POS"], c6["POS"], c5[1], r4[1], j2[1]
 fb += r4[2], r5[1], u1["FB"]
-gnd += j1[2], j2[2], c1["NEG"], c2[2], q1["S"], rpd[2], u1["GND"], c3[2], c4["NEG"], c5[2], r5[2]
+gnd += j1[2], j2[2], c1["NEG"], c2[2], q1["S"], rpd[2], u1["GND"], c3[2], c4["NEG"], c6["NEG"], c5[2], r5[2]
 
 finish()

@@ -127,7 +127,7 @@ def test_shopping_list(tmp_path):
     items = shopping_items(out.netlist, load_db(), layout, boards=3, spares=0.1)
     by = {(i.name, i.value): i for i in items}
     assert by[("NE555", "")].qty == 3
-    assert by[("R_1/4W", "10k")].qty == 3 + 1  # +10 %, at least one spare
+    assert by[("R_1/4W", "100k")].qty == 3 + 1  # +10 %, at least one spare
     assert by[("DIP-8 IC socket", "")].qty == 3
     assert any(i.category == "board" and i.value == "12x10 holes" for i in items)
     assert any(i.category == "wire" and i.unit == "m" for i in items)

@@ -170,6 +170,7 @@ See [`src/circuitloop/templates/spec.yaml`](src/circuitloop/templates/spec.yaml)
 - `faults` — conditions to inject (`reverse_polarity`, `overvoltage`) with numeric expectations;
   absolute-maximum ratings must hold. `reverse_polarity` protection without a fault entry gets a
   default fault.
+- `tolerance` — `enabled` (default true), `method` (`worst_case` | `monte_carlo`), `samples`, `seed`.
 - `allow_incomplete_sim` — default `false`: a part without a SPICE/equivalent model makes the
   simulation **INCOMPLETE**, which fails the gate.
 
@@ -184,6 +185,7 @@ Pipeline settings (agent backend, model, timeouts, `max_iter`, reviewer on/off) 
 | G3 simulation | ngspice at each supply corner: acceptance criteria and every rating (voltage, current, power) × derating; per-pin 0 V ammeters make this work for subcircuits too |
 | G4 regression | Phase 1 measurements still within acceptance (optionally `regression.max_drift`) |
 | G5 fault injection | reversed supply / over-voltage: net limits, input current, absolute maximum ratings |
+| G7 tolerance | final verification only: every part value and model parameter with a tolerance (resistors ±1 %, ceramics ±10 %, electrolytics/inductors ±20 %, regulator/reference voltages ±2–5 %) pushed to its worst-case extreme per criterion (sensitivity-based extreme value analysis, at the supply corner with the least margin), or Monte Carlo (`tolerance.method: monte_carlo`); acceptance criteria and derated ratings must still hold |
 | G6 layout | placement/routing re-extracted with union-find and compared to the netlist (opens, shorts, overlaps, board size) |
 
 ### Custom ERC rules

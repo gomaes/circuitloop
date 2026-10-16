@@ -8,6 +8,7 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from . import EXIT_ENV_ERROR, EXIT_OK, __version__
@@ -213,7 +214,7 @@ def _print_gate_table(report) -> None:
     console.print(t)
     for g in report.gates:
         for f in g.errors()[:10]:
-            console.print(f"  [red]{g.gate}[/] {f.rule}: {f.message.splitlines()[0]}")
+            console.print(f"  [red]{g.gate}[/] {f.rule}: {escape(f.message.splitlines()[0])}")
 
 
 parts_app = typer.Typer(help="Manage the parts database.", no_args_is_help=True)
