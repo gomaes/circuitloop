@@ -130,12 +130,23 @@ passed every gate (G1–G6, including fault injection) — open `layout.html` fo
 | `cloop init <name> [--example X]` | create a project (spec.yaml, cloop.toml, parts/, rules/) |
 | `cloop run [spec.yaml]` | run the whole pipeline unattended |
 | `cloop run --from design\|harden\|reverify\|output [--run DIR]` | resume the latest (or given) run from a phase |
-| `cloop verify <design.py> [--spec] [--phase design\|final] [--baseline]` | gates only, e.g. for a hand-edited design |
+| `cloop verify <design.py> [--spec] [--phase design\|final] [--baseline] [--quick]` | gates only, e.g. for a hand-edited design; `--quick` = nominal supply only, no faults (fast, not authoritative) |
+| `cloop shopping-list [PROJECT] [--boards N] [--spares 0.1]` | everything to buy for the final design: components, IC sockets, perfboard size, wire lengths (also written to `output/shopping_list.*`) |
 | `cloop status [--json]` | progress/result of the latest run |
 | `cloop doctor` | check Python, ngspice, agent CLIs; print install hints |
 | `cloop parts list [--kind K] [--json]` / `cloop parts add file.yaml [--user]` | manage the parts DB |
 
-Common options: `--agent claude|opencode`, `--max-iter N`, `--verbose`.
+Common options: `--agent claude|opencode`, `--max-iter N`, `--jobs N`, `--verbose`.
+
+### Parallel simulation
+
+All simulations of one verification (every supply corner and every fault case) are independent
+and run concurrently. Each ngspice process is single-threaded and small (~30 MB for the bundled
+examples), so the useful number of parallel jobs is
+`min(usable CPUs, number of scenarios, available memory / 300 MB)`, where usable CPUs honours the
+process's CPU affinity and cgroup CPU quota (containers). Override with `--jobs N` or
+`loop.sim_jobs` in `cloop.toml`. The agent loop itself is sequential by design (each fix depends
+on the previous report).
 
 Exit codes: **0** success · **1** design failed (iteration limit) · **2** configuration/environment
 error · **3** tampering detected.
@@ -199,7 +210,22 @@ Project rules are hashed like the spec; agents cannot add or edit them.
 
 YAML files in `parts/` (bundled), `~/.config/circuitloop/parts/` and `<project>/parts/`. Each part
 has pins (name/type), absolute-maximum ratings, optional decoupling requirements, a perfboard
-package and a SPICE model (`primitive`, `subckt`, `equivalent` or `connector`). Parts that are not
+package and a SPICE model (`primitive`, `subckt`, `equivalent` or `connector`). A model can also
+come from a vendor model file you downloaded yourself — circuitloop never bundles vendor models,
+whose licences often forbid redistribution:
+
+```yaml
+IRLZ44N_VENDOR:
+  # ... pins, ratings, package as usual ...
+  spice:
+    type: subckt
+    line: "X{ref} {2} {1} {3} IRLZ44N"   # node order of the vendor subcircuit
+    include: models/irlz44n.lib          # relative to this YAML file (or absolute / ~)
+    compat: ps                           # ngspice PSpice compatibility (ps | lt | ki)
+```
+
+Referenced model files are hashed like the parts DB; a missing file makes the simulation
+INCOMPLETE. Parts that are not
 registered are an ERC error. Current ratings can be checked as `peak` (default), `average`
 (e.g. a diode's If(AV)) or `rms` (inductor / capacitor ripple / PTC hold current); power ratings are
 thermal and are compared with the average dissipation over the steady-state window. The bundled SPICE models are circuitloop's own behavioural models of

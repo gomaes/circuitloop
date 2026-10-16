@@ -134,12 +134,17 @@ ls output/
 | `cloop init <name> [--example X]` | プロジェクトを作成する（spec.yaml, cloop.toml, parts/, rules/） |
 | `cloop run [spec.yaml]` | 全パイプラインを無人実行する |
 | `cloop run --from design\|harden\|reverify\|output [--run DIR]` | 直近の run（または指定した run）を途中フェーズから再開する |
-| `cloop verify <design.py> [--spec] [--phase design\|final] [--baseline]` | 検証ゲートだけを実行する（人が手で直した設計の確認用） |
+| `cloop verify <design.py> [--spec] [--phase design\|final] [--baseline] [--quick]` | 検証ゲートだけを実行する（人が手で直した設計の確認用）。`--quick` は公称電圧だけで故障注入なしの簡易チェック（速いが正式な判定ではない） |
+| `cloop shopping-list [PROJECT] [--boards N] [--spares 0.1]` | 最終設計に必要なものを一覧にする：部品、IC ソケット、基板サイズ、配線材の長さ（`output/shopping_list.*` にも出力） |
 | `cloop status [--json]` | 直近の run の進捗と結果を表示する |
 | `cloop doctor` | Python、ngspice、エージェント CLI を確認し、不足があれば導入方法を表示する |
 | `cloop parts list [--kind K] [--json]` / `cloop parts add file.yaml [--user]` | 部品 DB を管理する |
 
-共通オプション: `--agent claude|opencode`、`--max-iter N`、`--verbose`
+共通オプション: `--agent claude|opencode`、`--max-iter N`、`--jobs N`、`--verbose`
+
+### シミュレーションの並列実行
+
+1回の検証に含まれるシミュレーション（各電源電圧と各故障条件）は互いに独立なので、同時に実行します。ngspice は1プロセス1スレッドで、メモリも小さい（同梱例で約 30MB）ため、並列数は `min(使える CPU 数, シミュレーションの本数, 空きメモリ / 300MB)` で決めます。使える CPU 数は、プロセスの CPU アフィニティと cgroup の CPU 制限（コンテナ）を反映した値です。`--jobs N` か `cloop.toml` の `loop.sim_jobs` で上書きできます。エージェントのループ自体は、前回のレポートを読んで直す仕組みなので順番に実行します。
 
 終了コード:
 
@@ -233,6 +238,20 @@ def check(ctx):
 DB に登録されていない部品は ERC エラーになります。
 
 電流定格は、ピーク値（デフォルト）、平均値（`average`。ダイオードの If(AV) など）、実効値（`rms`。インダクタやコンデンサのリップル電流、PTC の保持電流など）のいずれで判定するかを部品ごとに指定できます。電力定格は熱的な定格なので、定常区間の平均消費電力で判定します。同梱の SPICE モデルは、データシートの代表的な特性を circuitloop 独自に動作モデル化したもので、メーカー提供のモデルではありません。
+
+メーカー提供のモデルを使いたい場合は、自分でダウンロードしたモデルファイルを部品 DB から参照できます。メーカーモデルは再配布を禁じるライセンスが多いため、circuitloop には同梱しません。
+
+```yaml
+IRLZ44N_VENDOR:
+  # ... ピン・定格・パッケージは通常どおり ...
+  spice:
+    type: subckt
+    line: "X{ref} {2} {1} {3} IRLZ44N"   # メーカーのサブサーキットのノード順に合わせる
+    include: models/irlz44n.lib          # この YAML からの相対パス（絶対パス・~ も可）
+    compat: ps                           # ngspice の互換モード（ps = PSpice, lt = LTspice, ki = KiCad）
+```
+
+参照したモデルファイルも部品 DB と同じくハッシュで監視します。ファイルがない場合は、シミュレーションが INCOMPLETE（不完全）になります。
 
 ## ユニバーサル基板の配置配線
 
