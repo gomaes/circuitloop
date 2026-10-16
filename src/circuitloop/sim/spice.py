@@ -179,6 +179,10 @@ def _control(spec: Spec, sc: Scenario) -> list[str]:
         # Power-on transient from zero initial conditions (uic): oscillators have
         # no meaningful DC operating point, and start-up is excluded by `settle`.
         t = spec.transient
-        out += [f"tran {_fmt(t.step)} {_fmt(t.stop)} 0 {_fmt(t.step)} uic", "write tran.raw"]
+        tstep = t.save_step or t.step
+        tstart = t.settle if t.save_window_only else 0
+        if t.save_step:
+            out.insert(1, "set interp")  # resample the output to tstep instead of every internal point
+        out += [f"tran {_fmt(tstep)} {_fmt(t.stop)} {_fmt(tstart)} {_fmt(t.step)} uic", "write tran.raw"]
     out += [".endc"]
     return out

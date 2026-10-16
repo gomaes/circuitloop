@@ -72,6 +72,14 @@ class Transient(_Model):
     stop: float = Field(gt=0, description="Simulation end time [s]")
     step: float = Field(gt=0, description="Max time step [s]")
     settle: float = Field(0.0, ge=0, description="Measurements ignore t < settle [s]")
+    save_step: float | None = Field(
+        None,
+        gt=0,
+        description="Output sample interval [s] (default: step). Use for long switching simulations",
+    )
+    save_window_only: bool = Field(
+        False, description="Only store t >= settle (keeps raw files small for switching converters)"
+    )
 
     @model_validator(mode="after")
     def _window(self) -> Transient:
@@ -138,7 +146,17 @@ class InputPower(_Criterion):
         return "input_power"
 
 
-Criterion = Annotated[DcVoltage | Ripple | Frequency | Gain | InputPower, Field(discriminator="type")]
+class InputCurrent(_Criterion):
+    type: Literal["input_current"]
+    max: float = Field(gt=0, description="Max average current drawn from the input supply [A]")
+
+    def default_id(self) -> str:
+        return "input_current"
+
+
+Criterion = Annotated[
+    DcVoltage | Ripple | Frequency | Gain | InputPower | InputCurrent, Field(discriminator="type")
+]
 
 TRANSIENT_CRITERIA = (Ripple, Frequency, Gain)
 
