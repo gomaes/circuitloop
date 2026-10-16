@@ -1,0 +1,166 @@
+# Switching-converter parts. SPICE models are circuitloop's own behavioural
+# approximations of typical datasheet behaviour (not vendor models).
+MC34063:
+  description: >-
+    DC-DC converter controller with 1.5 A Darlington switch, DIP-8, 3-40 V. Oscillator
+    set by CT (ton ~ 25000*CT s), 1.25 V feedback reference, cycle-by-cycle current
+    limit when V(VCC)-V(IPK) > 0.3 V. For >1.5 A drive an external MOSFET from SWE.
+  kind: ic
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: MC34063ABP
+  pins:
+    1: {name: SWC, type: passive}
+    2: {name: SWE, type: passive}
+    3: {name: CT, type: passive}
+    4: {name: GND, type: power_in}
+    5: {name: FB, type: input}
+    6: {name: VCC, type: power_in}
+    7: {name: IPK, type: input}
+    8: {name: DRC, type: passive}
+  ratings:
+    - {type: voltage, pins: [6, 4], max: 40, min: -0.3}
+    - {type: voltage, pins: [5, 4], max: 40, min: -0.3}
+    - {type: voltage, pins: [1, 4], max: 40, min: -0.3}
+    - {type: current, pin: 1, max: 1.5}
+    - {type: current, pin: 2, max: 1.5}
+    - {type: power, max: 1.25}
+  decoupling:
+    - {pin: 6, gnd: 4, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_MC34063"
+    models: |
+      .subckt CL_MC34063 SWC SWE CT GND FB VCC IPK DRC
+      * oscillator: CT ramps between 0.75 V and 1.25 V; st = 1 while discharging
+      Bst st GND V = 0.5*(1+tanh(100*(V(CT,GND) - 1.25 + 0.5*V(std))))
+      Rstd st std 100
+      Cstd std GND 50p
+      * charge 22 uA (+2 mA once V(VCC,IPK) > 0.3 V: cycle-by-cycle current limit), discharge 140 uA
+      Bct GND CT I = (1-V(std))*(22u + 0.5*(1+tanh(100*(V(VCC,IPK)-0.3)))*2m) - V(std)*140u
+      * comparator (1.25 V) and latch: set while charging if FB < 1.25 V, reset while discharging
+      Bcmp cmp GND V = 0.5*(1+tanh(300*(1.25-V(FB,GND))))
+      Bq q GND V = 0.5*(1+tanh(30*((1-V(std))*V(cmp) - V(std) + 0.8*(V(qd)-0.5))))
+      Rqd q qd 100
+      Cqd qd GND 50p
+      * Darlington output (about 1 V from SWC to SWE when on) and driver transistor (DRC)
+      Bsw SWC SWE I = V(qd)*2.5*(max(V(SWC,SWE)-0.9,0) + 0.05*ln(1+exp(-abs(V(SWC,SWE)-0.9)/0.05)))
+      Bdr DRC SWE I = V(qd)*0.01*(max(V(DRC,SWE)-0.7,0) + 0.05*ln(1+exp(-abs(V(DRC,SWE)-0.7)/0.05)))
+      Rsw SWC SWE 100meg
+      Bsup VCC GND I = 2.5m*0.5*(1+tanh(5*(V(VCC,GND)-2)))
+      Rfb FB GND 10meg
+      Rlk VCC GND 1meg
+      .ends CL_MC34063
+
+IRLZ44N:
+  description: Logic-level N-MOSFET 55 V / 47 A, Rds(on) ~25 mOhm at Vgs 4-5 V, TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRLZ44NPBF
+  pins:
+    1: {name: G, type: input}
+    2: {name: D}
+    3: {name: S}
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 55, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 16, min: -16}
+    - {type: current, pin: 2, max: 47, mode: rms}
+    - {type: current, pin: 2, max: 160}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRLZ44N"
+    models: ".model CL_IRLZ44N VDMOS(VTO=1.5 KP=40 RD=0.01 RS=0.005 RG=2 LAMBDA=0.01 CGDMAX=0.5n CGDMIN=0.05n CGS=1.5n IS=1e-12 RB=0.01 CJO=1n TT=50n)"
+
+1N5822:
+  description: 3 A / 40 V Schottky rectifier, DO-201AD (pin 1 = anode)
+  kind: diode
+  package: axial_600
+  footprint: Diode_THT:D_DO-201AD_P15.24mm_Horizontal
+  mpn: 1N5822
+  pins:
+    1: {name: A}
+    2: {name: K}
+  ratings:
+    - {type: current, pin: 1, max: 3.0, mode: average}
+    - {type: current, pin: 1, max: 20}
+    - {type: voltage, pins: [2, 1], max: 40, min: -2}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_D1N5822"
+    models: ".model CL_D1N5822 D(IS=4e-5 N=1.05 RS=0.015 BV=40 IBV=1e-3 CJO=3e-10)"
+
+L_POWER_3A:
+  description: Radial power inductor, 10 mm diameter, 5 mm pitch, 3 A rated (RMS) / 4 A saturation, DCR ~30 mOhm
+  kind: inductor
+  package: ind_r10
+  footprint: Inductor_THT:L_Radial_D10.0mm_P5.00mm_Fastron_07P
+  mpn: "Radial power inductor 3A {value}"
+  value: required
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: current, pin: 1, max: 3.0, mode: rms}
+    - {type: current, pin: 1, max: 4.0}
+  spice:
+    type: primitive
+    line: |-
+      L{ref} {1} {ref}_m {value}
+      R{ref}_dcr {ref}_m {2} 0.03
+      R{ref}_core {1} {2} 2k
+
+C_ELEC_25V_D10:
+  description: >-
+    Low-ESR aluminium electrolytic capacitor, 25 V, 10 mm diameter, 5 mm pitch, for
+    100-1000 uF; ripple current rating 1 A RMS (pin 1 = +)
+  kind: electrolytic
+  package: ecap_d10
+  footprint: Capacitor_THT:CP_Radial_D10.0mm_P5.00mm
+  mpn: "Low-ESR electrolytic 25V {value} D10"
+  value: required
+  pins:
+    1: {name: POS}
+    2: {name: NEG}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 25, min: -0.5}
+    - {type: current, pin: 1, max: 1.0, mode: rms}
+  spice:
+    type: primitive
+    line: |-
+      C{ref} {1} {ref}_esr {value}
+      R{ref}_esr {ref}_esr {2} 0.05
+
+R_1W:
+  description: Metal film resistor, 1 W, axial (15.24 mm lead pitch); also for low-ohm current sensing
+  kind: resistor
+  package: axial_600
+  footprint: Resistor_THT:R_Axial_DIN0414_L11.9mm_D4.5mm_P15.24mm_Horizontal
+  mpn: "MF 1W {value}"
+  value: required
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: power, max: 1.0}
+    - {type: voltage, pins: [1, 2], max: 350}
+  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+
+PTC_RXEF250:
+  description: Resettable PTC fuse, 2.5 A hold / 5 A trip, 30 V, radial 5.1 mm, ~0.07 Ohm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF250
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+  ratings:
+    - {type: current, pin: 1, max: 2.5, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 30}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 0.07"
+    note: "untripped state only (typ. ~0.07 ohm); trip behaviour is not simulated"

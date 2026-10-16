@@ -111,11 +111,11 @@ def _body(p: Placed, lay: Layout, kind: str, value: str) -> list[str]:
             f'<ellipse cx="{cx}" cy="{cy}" rx="{math.dist(a, b) / 2 + S * 0.45:.1f}" ry="{S * 0.32:.1f}" '
             f'transform="rotate({ang} {cx} {cy})" class="cer"/>'
         )
-    elif g in ("ecap", "led", "radial"):
+    elif g in ("ecap", "led", "radial", "inductor"):
         a, b = _xy(pads[1], lay.cols, False), _xy(pads[2], lay.cols, False)
         cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
-        r = S * 0.98 if g != "led" else S * 0.95
-        cls = "led" if g == "led" else "ecap"
+        r = S * 0.95 if g == "led" else max(S * 0.98, math.dist(a, b) / 2 + S * 0.98)
+        cls = {"led": "led", "inductor": "ind"}.get(g, "ecap")
         out.append(f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" class="{cls}"/>')
         if kind in ("electrolytic", "led"):
             out.append(f'<text x="{a[0]}" y="{a[1] - S * 0.45}" class="pol" text-anchor="middle">+</text>')
@@ -190,7 +190,7 @@ SVG_STYLE = """
 .lbl{font-size:9px;fill:#5b4a2a}.cap{font-size:12px;fill:currentColor}
 .lead{stroke:#8a8a8a;stroke-width:2}.res{fill:#e8d2a6;stroke:#7b5e2a}.dio{fill:#333;stroke:#111}
 .band{fill:#ddd}.cer{fill:#e5a33a;stroke:#8a5a10}.ecap{fill:#2f4d80;stroke:#16264a}
-.led{fill:#e23b3b;fill-opacity:.75;stroke:#7a1010}.ic{fill:#2a2a2a;stroke:#000}
+.ind{fill:#5b5b5b;stroke:#222}.led{fill:#e23b3b;fill-opacity:.75;stroke:#7a1010}.ic{fill:#2a2a2a;stroke:#000}
 .term{fill:#2a9d4a;stroke:#145a28}.hdr{fill:#222;stroke:#000}
 .pin{fill:#c0c0c0;stroke:#555}.pin1{fill:#ffd24a}.dot{fill:#ddd}
 .ref{font-size:10px;font-weight:700;fill:#fff;paint-order:stroke;stroke:#000;stroke-width:2.5px}
