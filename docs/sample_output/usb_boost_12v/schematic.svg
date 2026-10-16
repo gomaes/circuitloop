@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 488" class="sch" width="1120" height="488" role="img" aria-label="schematic">
+<style>.sch{font-family:ui-sans-serif,system-ui,sans-serif;font-size:11px}.sym{fill:none;stroke:#222;stroke-width:1.6}.box{fill:#fffbe8;stroke:#222;stroke-width:1.4}.w{stroke:#222;stroke-width:1.2}.ref{font-weight:700}.val{fill:#555}.pn{fill:#333;font-size:10px}.nl{font-size:10px;font-weight:600}.pl{font-size:12px;font-weight:700}</style>
+<text x="20" y="18" class="ref">usb_boost_12v — net-label schematic</text>
+<line x1="80" y1="60" x2="135.0" y2="60" class="w"/>
+<text x="76" y="64" text-anchor="end" class="nl" fill="#3fa34d">VIN</text>
+<text x="107.5" y="56" text-anchor="middle" class="pn">POS</text>
+<line x1="230" y1="60" x2="175.0" y2="60" class="w"/>
+<text x="234" y="64" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="202.5" y="56" text-anchor="middle" class="pn">NEG</text>
+<line x1="151.0" y1="51" x2="151.0" y2="69" class="sym"/><line x1="159.0" y1="51" x2="159.0" y2="69" class="sym"/><text x="141.0" y="54" class="pl">+</text>
+<text x="155.0" y="84" text-anchor="middle" class="ref">C1</text>
+<text x="155.0" y="96" text-anchor="middle" class="val">100u</text>
+<line x1="350" y1="60" x2="405.0" y2="60" class="w"/>
+<text x="346" y="64" text-anchor="end" class="nl" fill="#b8860b">VOUT</text>
+<text x="377.5" y="56" text-anchor="middle" class="pn">POS</text>
+<line x1="500" y1="60" x2="445.0" y2="60" class="w"/>
+<text x="504" y="64" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="472.5" y="56" text-anchor="middle" class="pn">NEG</text>
+<line x1="421.0" y1="51" x2="421.0" y2="69" class="sym"/><line x1="429.0" y1="51" x2="429.0" y2="69" class="sym"/><text x="411.0" y="54" class="pl">+</text>
+<text x="425.0" y="84" text-anchor="middle" class="ref">C2</text>
+<text x="425.0" y="96" text-anchor="middle" class="val">470u</text>
+<line x1="620" y1="60" x2="675.0" y2="60" class="w"/>
+<text x="616" y="64" text-anchor="end" class="nl" fill="#3fa34d">VIN</text>
+<text x="647.5" y="56" text-anchor="middle" class="pn">1</text>
+<line x1="770" y1="60" x2="715.0" y2="60" class="w"/>
+<text x="774" y="64" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="742.5" y="56" text-anchor="middle" class="pn">2</text>
+<line x1="691.0" y1="51" x2="691.0" y2="69" class="sym"/><line x1="699.0" y1="51" x2="699.0" y2="69" class="sym"/>
+<text x="695.0" y="84" text-anchor="middle" class="ref">C3</text>
+<text x="695.0" y="96" text-anchor="middle" class="val">100n</text>
+<line x1="890" y1="60" x2="945.0" y2="60" class="w"/>
+<text x="886" y="64" text-anchor="end" class="nl" fill="#1f618d">CT</text>
+<text x="917.5" y="56" text-anchor="middle" class="pn">1</text>
+<line x1="1040" y1="60" x2="985.0" y2="60" class="w"/>
+<text x="1044" y="64" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="1012.5" y="56" text-anchor="middle" class="pn">2</text>
+<line x1="961.0" y1="51" x2="961.0" y2="69" class="sym"/><line x1="969.0" y1="51" x2="969.0" y2="69" class="sym"/>
+<text x="965.0" y="84" text-anchor="middle" class="ref">C4</text>
+<text x="965.0" y="96" text-anchor="middle" class="val">560p</text>
+<line x1="80" y1="160" x2="135.0" y2="160" class="w"/>
+<text x="76" y="164" text-anchor="end" class="nl" fill="#117a65">SW</text>
+<text x="107.5" y="156" text-anchor="middle" class="pn">A</text>
+<line x1="230" y1="160" x2="175.0" y2="160" class="w"/>
+<text x="234" y="164" text-anchor="start" class="nl" fill="#b8860b">VOUT</text>
+<text x="202.5" y="156" text-anchor="middle" class="pn">K</text>
+<polygon points="148.0,152 148.0,168 162.0,160" class="sym"/><line x1="162.0" y1="152" x2="162.0" y2="168" class="sym"/>
+<text x="155.0" y="184" text-anchor="middle" class="ref">D1</text>
+<text x="155.0" y="196" text-anchor="middle" class="val">1N5822</text>
+<line x1="350" y1="160" x2="405.0" y2="160" class="w"/>
+<text x="346" y="164" text-anchor="end" class="nl" fill="#117a65">VBUS</text>
+<text x="377.5" y="156" text-anchor="middle" class="pn">1</text>
+<line x1="500" y1="160" x2="445.0" y2="160" class="w"/>
+<text x="504" y="164" text-anchor="start" class="nl" fill="#3fa34d">VIN</text>
+<text x="472.5" y="156" text-anchor="middle" class="pn">2</text>
+<rect x="411.0" y="155" width="28" height="10" class="sym"/>
+<text x="425.0" y="184" text-anchor="middle" class="ref">F1</text>
+<text x="425.0" y="196" text-anchor="middle" class="val">PTC_RXEF250</text>
+<rect x="620" y="130" width="150" height="38" class="box"/>
+<text x="695.0" y="144" text-anchor="middle" class="ref">J1 TERM_2P_5.08</text>
+<line x1="596" y1="156" x2="620" y2="156" class="w"/>
+<text x="624" y="160" class="pn">1 1</text>
+<text x="593" y="160" text-anchor="end" class="nl" fill="#117a65">VBUS</text>
+<line x1="770" y1="156" x2="794" y2="156" class="w"/>
+<text x="766" y="160" text-anchor="end" class="pn">2 2</text>
+<text x="797" y="160" class="nl" fill="#3b3b3b">GND</text>
+<rect x="890" y="130" width="150" height="38" class="box"/>
+<text x="965.0" y="144" text-anchor="middle" class="ref">J2 TERM_2P_5.08</text>
+<line x1="866" y1="156" x2="890" y2="156" class="w"/>
+<text x="894" y="160" class="pn">1 1</text>
+<text x="863" y="160" text-anchor="end" class="nl" fill="#b8860b">VOUT</text>
+<line x1="1040" y1="156" x2="1064" y2="156" class="w"/>
+<text x="1036" y="160" text-anchor="end" class="pn">2 2</text>
+<text x="1067" y="160" class="nl" fill="#3b3b3b">GND</text>
+<line x1="80" y1="260" x2="135.0" y2="260" class="w"/>
+<text x="76" y="264" text-anchor="end" class="nl" fill="#117a65">ISNS</text>
+<text x="107.5" y="256" text-anchor="middle" class="pn">1</text>
+<line x1="230" y1="260" x2="175.0" y2="260" class="w"/>
+<text x="234" y="264" text-anchor="start" class="nl" fill="#117a65">SW</text>
+<text x="202.5" y="256" text-anchor="middle" class="pn">2</text>
+<rect x="141.0" y="252" width="28" height="16" class="sym"/>
+<text x="155.0" y="284" text-anchor="middle" class="ref">L1</text>
+<text x="155.0" y="296" text-anchor="middle" class="val">100u</text>
+<rect x="350" y="230" width="150" height="56" class="box"/>
+<text x="425.0" y="244" text-anchor="middle" class="ref">Q1 IRLZ44N</text>
+<line x1="326" y1="256" x2="350" y2="256" class="w"/>
+<text x="354" y="260" class="pn">1 G</text>
+<text x="323" y="260" text-anchor="end" class="nl" fill="#8e44ad">GATE</text>
+<line x1="326" y1="274" x2="350" y2="274" class="w"/>
+<text x="354" y="278" class="pn">2 D</text>
+<text x="323" y="278" text-anchor="end" class="nl" fill="#117a65">SW</text>
+<line x1="500" y1="256" x2="524" y2="256" class="w"/>
+<text x="496" y="260" text-anchor="end" class="pn">S 3</text>
+<text x="527" y="260" class="nl" fill="#3b3b3b">GND</text>
+<line x1="620" y1="260" x2="675.0" y2="260" class="w"/>
+<text x="616" y="264" text-anchor="end" class="nl" fill="#8e44ad">GATE</text>
+<text x="647.5" y="256" text-anchor="middle" class="pn">1</text>
+<line x1="770" y1="260" x2="715.0" y2="260" class="w"/>
+<text x="774" y="264" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="742.5" y="256" text-anchor="middle" class="pn">2</text>
+<polyline points="677.0,260 681.5,255 686.0,265 690.5,255 695.0,265 699.5,255 704.0,265 708.5,255 713.0,260" class="sym"/>
+<text x="695.0" y="284" text-anchor="middle" class="ref">R1</text>
+<text x="695.0" y="296" text-anchor="middle" class="val">470</text>
+<line x1="890" y1="260" x2="945.0" y2="260" class="w"/>
+<text x="886" y="264" text-anchor="end" class="nl" fill="#b8860b">VOUT</text>
+<text x="917.5" y="256" text-anchor="middle" class="pn">1</text>
+<line x1="1040" y1="260" x2="985.0" y2="260" class="w"/>
+<text x="1044" y="264" text-anchor="start" class="nl" fill="#b8860b">FB</text>
+<text x="1012.5" y="256" text-anchor="middle" class="pn">2</text>
+<polyline points="947.0,260 951.5,255 956.0,265 960.5,255 965.0,265 969.5,255 974.0,265 978.5,255 983.0,260" class="sym"/>
+<text x="965.0" y="284" text-anchor="middle" class="ref">R2</text>
+<text x="965.0" y="296" text-anchor="middle" class="val">18k</text>
+<line x1="80" y1="366" x2="135.0" y2="366" class="w"/>
+<text x="76" y="370" text-anchor="end" class="nl" fill="#b8860b">FB</text>
+<text x="107.5" y="362" text-anchor="middle" class="pn">1</text>
+<line x1="230" y1="366" x2="175.0" y2="366" class="w"/>
+<text x="234" y="370" text-anchor="start" class="nl" fill="#3b3b3b">GND</text>
+<text x="202.5" y="362" text-anchor="middle" class="pn">2</text>
+<polyline points="137.0,366 141.5,361 146.0,371 150.5,361 155.0,371 159.5,361 164.0,371 168.5,361 173.0,366" class="sym"/>
+<text x="155.0" y="390" text-anchor="middle" class="ref">R3</text>
+<text x="155.0" y="402" text-anchor="middle" class="val">2k1</text>
+<line x1="350" y1="366" x2="405.0" y2="366" class="w"/>
+<text x="346" y="370" text-anchor="end" class="nl" fill="#3fa34d">VIN</text>
+<text x="377.5" y="362" text-anchor="middle" class="pn">1</text>
+<line x1="500" y1="366" x2="445.0" y2="366" class="w"/>
+<text x="504" y="370" text-anchor="start" class="nl" fill="#117a65">ISNS</text>
+<text x="472.5" y="362" text-anchor="middle" class="pn">2</text>
+<polyline points="407.0,366 411.5,361 416.0,371 420.5,361 425.0,371 429.5,361 434.0,371 438.5,361 443.0,366" class="sym"/>
+<text x="425.0" y="390" text-anchor="middle" class="ref">R4</text>
+<text x="425.0" y="402" text-anchor="middle" class="val">0.12</text>
+<rect x="620" y="336" width="150" height="92" class="box"/>
+<text x="695.0" y="350" text-anchor="middle" class="ref">U1 MC34063</text>
+<line x1="596" y1="362" x2="620" y2="362" class="w"/>
+<text x="624" y="366" class="pn">1 SWC</text>
+<text x="593" y="366" text-anchor="end" class="nl" fill="#3fa34d">VIN</text>
+<line x1="596" y1="380" x2="620" y2="380" class="w"/>
+<text x="624" y="384" class="pn">2 SWE</text>
+<text x="593" y="384" text-anchor="end" class="nl" fill="#8e44ad">GATE</text>
+<line x1="596" y1="398" x2="620" y2="398" class="w"/>
+<text x="624" y="402" class="pn">3 CT</text>
+<text x="593" y="402" text-anchor="end" class="nl" fill="#1f618d">CT</text>
+<line x1="596" y1="416" x2="620" y2="416" class="w"/>
+<text x="624" y="420" class="pn">4 GND</text>
+<text x="593" y="420" text-anchor="end" class="nl" fill="#3b3b3b">GND</text>
+<line x1="770" y1="416" x2="794" y2="416" class="w"/>
+<text x="766" y="420" text-anchor="end" class="pn">FB 5</text>
+<text x="797" y="420" class="nl" fill="#b8860b">FB</text>
+<line x1="770" y1="398" x2="794" y2="398" class="w"/>
+<text x="766" y="402" text-anchor="end" class="pn">VCC 6</text>
+<text x="797" y="402" class="nl" fill="#3fa34d">VIN</text>
+<line x1="770" y1="380" x2="794" y2="380" class="w"/>
+<text x="766" y="384" text-anchor="end" class="pn">IPK 7</text>
+<text x="797" y="384" class="nl" fill="#117a65">ISNS</text>
+<line x1="770" y1="362" x2="794" y2="362" class="w"/>
+<text x="766" y="366" text-anchor="end" class="pn">DRC 8</text>
+<text x="797" y="366" class="nl" fill="#3fa34d">VIN</text>
+</svg>

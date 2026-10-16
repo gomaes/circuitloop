@@ -14,6 +14,29 @@ SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
 INK, MUTED, GRID = "#1f1f1e", "#6b6a63", "#e4e3dd"
 
 
+def _switching_zoom(traces, net: str, settle: float, max_cycles: int = 40, show: int = 6):
+    """(t_start, t_end, shown, total) when the window holds many periodic cycles, else None."""
+    import numpy as np
+
+    from ..sim.measure import frequency_of
+
+    for d in traces.values():
+        if net not in d:
+            continue
+        t, x = np.asarray(d["time"]), np.asarray(d[net])
+        m = t >= settle
+        if m.sum() < 10:
+            return None
+        f = frequency_of(t[m], x[m])
+        if f is None:
+            return None
+        total = int((t[m][-1] - t[m][0]) * f)
+        if total <= max_cycles:
+            return None
+        return (t[m][-1] - show / f, t[m][-1], show, total)
+    return None
+
+
 def plot_waveforms(
     traces: dict[str, dict[str, list[float]]],
     nets: list[str],
@@ -52,6 +75,11 @@ def plot_waveforms(
             if lo is None and hi is None
             else f"   (limits {'' if lo is None else f'{lo:g}'}..{'' if hi is None else f'{hi:g}'} V)"
         )
+        zoom = _switching_zoom(traces, net, settle)
+        if zoom is not None:  # many cycles in the window: show the last few so the ripple is readable
+            ax.set_xlim(zoom[0] * scale, zoom[1] * scale)
+            ax.relim(visible_only=True)
+            lim += f"   — last {zoom[2]} of {zoom[3]} cycles"
         ax.set_title(f"V({net}){lim}", color=INK, fontsize=11, loc="left")
         ax.set_xlabel(f"time [{unit}]", color=MUTED)
         ax.set_ylabel("voltage [V]", color=MUTED)
@@ -61,7 +89,7 @@ def plot_waveforms(
         for s in ("left", "bottom"):
             ax.spines[s].set_color(GRID)
         ax.tick_params(colors=MUTED, labelsize=8)
-        ax.legend(frameon=False, fontsize=8, loc="lower right")
+        ax.legend(frameon=False, fontsize=8, loc="upper left", bbox_to_anchor=(1.0, 1.0))
         fig.tight_layout()
         f = out_dir / f"waveform_{net}.png"
         fig.savefig(f)

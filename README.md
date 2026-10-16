@@ -118,8 +118,9 @@ ls output/
 ## Sample output
 
 [`docs/sample_output/`](docs/sample_output/) holds the outputs of real, unattended `cloop run`
-runs with Claude Code on the three bundled examples (`examples/`): 5 V LDO supply with reverse
-polarity and overcurrent protection, NE555 1 Hz LED blinker, and a single-supply ×10 op-amp. Each
+runs with Claude Code on the four bundled examples (`examples/`): 5 V LDO supply with reverse
+polarity and overcurrent protection, NE555 1 Hz LED blinker, a single-supply ×10 op-amp, and a USB 5 V → 12 V / 0.5 A
+boost converter (MC34063 + external MOSFET). Each
 passed every gate (G1–G6, including fault injection) — open `layout.html` for the interactive board.
 
 ## Commands

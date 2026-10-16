@@ -1,0 +1,15 @@
+refs,qty,part,value,mpn,description,package,footprint,ratings
+C1,1,C_ELEC_16V,100u,Electrolytic 16V 100u,"Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, 5-6.3 mm body, up to 100 uF, polarised (pin 1 = +)",ecap_d5,Capacitor_THT:CP_Radial_D5.0mm_P2.50mm,16V
+C2,1,C_ELEC_25V_D10,470u,Low-ESR electrolytic 25V 470u D10,"Low-ESR aluminium electrolytic capacitor, 25 V, 10 mm diameter, 5 mm pitch, for 100-1000 uF; ripple current rating 1 A RMS (pin 1 = +)",ecap_d10,Capacitor_THT:CP_Radial_D10.0mm_P5.00mm,25V / 1A
+C3,1,C_CER_50V,100n,MLCC 50V X7R 100n,"Multilayer ceramic capacitor, 50 V, X7R, radial 2.54 mm",radial_100,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm,50V
+C4,1,C_CER_50V,560p,MLCC 50V X7R 560p,"Multilayer ceramic capacitor, 50 V, X7R, radial 2.54 mm",radial_100,Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm,50V
+D1,1,1N5822,,1N5822,"3 A / 40 V Schottky rectifier, DO-201AD (pin 1 = anode)",axial_600,Diode_THT:D_DO-201AD_P15.24mm_Horizontal,3A / 20A / 40V / 2W
+F1,1,PTC_RXEF250,,RXEF250,"Resettable PTC fuse, 2.5 A hold / 5 A trip, 30 V, radial 5.1 mm, ~0.07 Ohm",radial_200,Fuse:Fuse_Littelfuse-LVR100,2.5A / 30V
+J1 J2,2,TERM_2P_5.08,,Screw terminal 2P 5.08mm,"2-pin screw terminal block, 5.08 mm pitch",term2_508,TerminalBlock:TerminalBlock_bornier-2_P5.08mm,10A / 250V
+L1,1,L_POWER_3A,100u,Radial power inductor 3A 100u,"Radial power inductor, 10 mm diameter, 5 mm pitch, 3 A rated (RMS) / 4 A saturation, DCR ~30 mOhm",ind_r10,Inductor_THT:L_Radial_D10.0mm_P5.00mm_Fastron_07P,3A / 4A
+Q1,1,IRLZ44N,,IRLZ44NPBF,"Logic-level N-MOSFET 55 V / 47 A, Rds(on) ~25 mOhm at Vgs 4-5 V, TO-220 (1=G 2=D 3=S)",to220v,Package_TO_SOT_THT:TO-220-3_Vertical,55V / 16V / 47A / 160A / 2W
+R1,1,R_1/4W,470,MF 1/4W 470,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+R2,1,R_1/4W,18k,MF 1/4W 18k,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+R3,1,R_1/4W,2k1,MF 1/4W 2k1,"Carbon/metal film resistor, 1/4 W, axial (10.16 mm lead pitch)",axial_400,Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal,250mW / 250V
+R4,1,R_1W,0.12,MF 1W 0.12,"Metal film resistor, 1 W, axial (15.24 mm lead pitch); also for low-ohm current sensing",axial_600,Resistor_THT:R_Axial_DIN0414_L11.9mm_D4.5mm_P15.24mm_Horizontal,1W / 350V
+U1,1,MC34063,,MC34063ABP,"DC-DC converter controller with 1.5 A Darlington switch, DIP-8, 3-40 V. Oscillator set by CT (ton ~ 25000*CT s), 1.25 V feedback reference, cycle-by-cycle current limit when V(VCC)-V(IPK) > 0.3 V. For >1.5 A drive an external MOSFET from SWE.",dip8,Package_DIP:DIP-8_W7.62mm,40V / 40V / 40V / 1.5A / 1.5A / 1.25W
