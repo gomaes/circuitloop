@@ -25,7 +25,7 @@ class Waveforms:
         self.sim = sim
         self.spec = spec
         self.mode = "tran" if (spec.transient is not None and "tran" in sim.plots) else "op"
-        self.valid = self.mode == "tran" or sim.op_converged
+        self.valid = self.mode == "tran" or (spec.transient is None and sim.op_converged)
         plot = sim.plots.get(self.mode)
         if self.mode == "tran":
             self._mask = plot.time >= spec.transient.settle
@@ -34,6 +34,12 @@ class Waveforms:
             self._mask = np.ones(1, dtype=bool)
             self.t = None
         self._plot = plot
+
+    @property
+    def invalid_reason(self) -> str:
+        if self.spec.transient is not None and "tran" not in self.sim.plots:
+            return f"transient analysis aborted ({self.sim.tran_error or 'no data'})"
+        return "DC operating point did not converge"
 
     @property
     def plots(self):
@@ -120,13 +126,7 @@ def input_power(wf: Waveforms) -> float | None:
 def measure_criterion(c, wf: Waveforms) -> Measured:
     key = c.key()
     if not wf.valid:
-        return Measured(
-            key,
-            None,
-            "",
-            False,
-            "DC operating point did not converge (add a transient section or fix the circuit)",
-        )
+        return Measured(key, None, "", False, wf.invalid_reason)
     if isinstance(c, DcVoltage):
         v = wf.v_net(c.net)
         val = wf.mean(v) if v is not None else None
