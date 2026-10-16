@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -72,10 +73,17 @@ def run_ngspice(deck_text: str, workdir: Path, timeout: int = 300) -> SimResult:
     cir.write_text(deck_text)
     for f in ("op.raw", "tran.raw"):
         (workdir / f).unlink(missing_ok=True)
+    m = re.search(r"^\* cloop-compat: (\w+)", deck_text, re.M)
+    env = None
+    cmd = [exe, "-b", "-n", "deck.cir"]  # -n: ignore any user .spiceinit
+    if m:
+        # Compatibility modes can only be set from .spiceinit; ngspice reads it from the working
+        # directory. HOME points at the run directory so a personal ~/.spiceinit cannot leak in.
+        (workdir / ".spiceinit").write_text(f"set ngbehavior={m.group(1)}\n")
+        env = dict(os.environ, HOME=str(workdir))
+        cmd = [exe, "-b", "deck.cir"]
     try:
-        proc = subprocess.run(
-            [exe, "-b", "-n", "deck.cir"], cwd=workdir, capture_output=True, text=True, timeout=timeout
-        )
+        proc = subprocess.run(cmd, cwd=workdir, capture_output=True, text=True, timeout=timeout, env=env)
     except subprocess.TimeoutExpired as e:
         raise SimError(f"ngspice timed out after {timeout}s") from e
     log = proc.stdout + proc.stderr

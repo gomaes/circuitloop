@@ -85,6 +85,14 @@ class SpiceDef(_M):
     type: Literal["primitive", "subckt", "equivalent", "connector"]
     line: str | None = Field(None, description="Element template; {ref} {value} {<pin>} placeholders")
     models: str | None = Field(None, description=".model / .subckt text this part needs")
+    include: str | None = Field(
+        None,
+        description="External model file (e.g. a vendor .lib you downloaded), included with .include. "
+        "Relative paths are relative to this YAML file; ~ is expanded. Not bundled with circuitloop.",
+    )
+    compat: Literal["ps", "lt", "ki"] | None = Field(
+        None, description="ngspice compatibility mode the model needs (ps = PSpice, lt = LTspice, ki = KiCad)"
+    )
     note: str | None = None
 
     @model_validator(mode="after")
@@ -163,6 +171,10 @@ class PartsDB:
     def keys(self) -> list[str]:
         return sorted(self.parts)
 
+    def model_files(self) -> list[Path]:
+        """External SPICE model files referenced by parts (hashed like the DB itself)."""
+        return sorted({Path(p.spice.include) for p in self.parts.values() if p.spice and p.spice.include})
+
 
 def search_dirs(project_dir: Path | None = None) -> list[Path]:
     dirs = [data_dir("parts"), user_config_dir() / "parts"]
@@ -190,6 +202,9 @@ def load_file(path: Path) -> dict[str, PartDef]:
         except ValidationError as e:
             raise PartsDBError(f"{path}: part {key}: {e}") from e
         pd.key, pd.source = str(key), str(path)
+        if pd.spice and pd.spice.include:
+            inc = Path(os.path.expanduser(pd.spice.include))
+            pd.spice.include = str(inc if inc.is_absolute() else (path.parent / inc).resolve())
         out[str(key)] = pd
     return out
 

@@ -134,6 +134,9 @@ class Orchestrator:
         if cfg_file.is_file():
             self.integrity.add(cfg_file)
         self.integrity.add(*self.db.files)
+        model_files = [f for f in self.db.model_files() if f.is_file()]
+        if model_files:  # vendor model files referenced by the parts DB
+            self.integrity.add(*model_files)
         for d in (self.project / "parts", self.project / "rules"):
             if d.is_dir():
                 self.integrity.add(d)
@@ -431,6 +434,7 @@ class Orchestrator:
             self.project,
             design_timeout=self.cfg.loop.design_timeout,
             sim_timeout=self.cfg.loop.sim_timeout,
+            sim_jobs=self.cfg.loop.sim_jobs,
         )
         t0 = time.monotonic()
         outcome = verify(

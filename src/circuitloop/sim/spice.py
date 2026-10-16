@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from ..netlist import Netlist
 from ..partsdb import PartsDB
@@ -48,6 +49,8 @@ class Deck:
     missing_model: list[str] = field(default_factory=list)
     equivalent: list[tuple[str, str]] = field(default_factory=list)  # (ref, note)
     node_of_net: dict[str, str] = field(default_factory=dict)
+    includes: list[str] = field(default_factory=list)
+    compat: set[str] = field(default_factory=set)
 
 
 def _fmt(x: float) -> str:
@@ -66,6 +69,9 @@ def build_deck(nl: Netlist, db: PartsDB, spec: Spec, sc: Scenario) -> Deck:
         pd = db.get(c.part_key)
         if pd is None or pd.spice is None:
             deck.missing_model.append(ref)
+            continue
+        if pd.spice.include and not Path(pd.spice.include).is_file():
+            deck.missing_model.append(ref)  # vendor model file not downloaded
             continue
         if pd.spice.type == "connector":
             deck.connectors.append(ref)
@@ -89,10 +95,17 @@ def build_deck(nl: Netlist, db: PartsDB, spec: Spec, sc: Scenario) -> Deck:
             net = nl.net_of(ref, num)
             outer = deck.node_of_net[net] if net is not None else f"nc_{ref.lower()}_{num}"
             body.append(f"{ammeter(ref, num).upper()} {outer} {pin_node(ref, num)} 0")
+        if pd.spice.include and pd.spice.include not in deck.includes:
+            deck.includes.append(pd.spice.include)
+        if pd.spice.compat:
+            deck.compat.add(pd.spice.compat)
         if pd.spice.models:
             for block in _split_models(pd.spice.models):
                 models.setdefault(_model_name(block), block)
         deck.simulated.append(ref)
+    if deck.compat:  # a conflict (more than one mode) is reported by the G3 gate
+        lines.insert(0, f"* cloop-compat: {sorted(deck.compat)[0]}")
+    lines += [f'.include "{inc}"' for inc in deck.includes]
     lines += list(models.values())
     lines += body
     lines += _harness(spec, sc, deck.node_of_net)
