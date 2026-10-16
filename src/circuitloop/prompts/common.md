@@ -19,3 +19,9 @@
   signals) out to a connector pin (terminal block or pin header) — the board must be wireable.
 - Every rating in the parts DB is checked in simulation against the derating factors in
   the spec (normal operation) and against absolute maximum values (fault injection).
+- The final verification also runs a **worst-case tolerance analysis**: every part value
+  and model parameter with a tolerance in the catalog (e.g. resistors ±1 %, ceramics ±10 %,
+  electrolytics/inductors ±20 %, regulator/reference voltages ±2-5 %) is pushed to the
+  extreme that hurts each criterion. Design with margin: a nominal value just inside a
+  limit will fail. Prefer tighter parts where precision matters (film instead of
+  electrolytic capacitors for timing).

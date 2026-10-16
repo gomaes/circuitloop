@@ -29,9 +29,11 @@ MC34063:
     - {pin: 6, gnd: 4, min: 1.0e-7}
   spice:
     type: subckt
-    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_MC34063"
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_MC34063 params: vref={p:vref}"
+    params:
+      vref: {value: 1.25, tolerance: 0.02}   # 1.225-1.275 V
     models: |
-      .subckt CL_MC34063 SWC SWE CT GND FB VCC IPK DRC
+      .subckt CL_MC34063 SWC SWE CT GND FB VCC IPK DRC params: vref=1.25
       * oscillator: CT ramps between 0.75 V and 1.25 V; st = 1 while discharging
       Bst st GND V = 0.5*(1+tanh(100*(V(CT,GND) - 1.25 + 0.5*V(std))))
       Rstd st std 100
@@ -39,7 +41,7 @@ MC34063:
       * charge 22 uA (+2 mA once V(VCC,IPK) > 0.3 V: cycle-by-cycle current limit), discharge 140 uA
       Bct GND CT I = (1-V(std))*(22u + 0.5*(1+tanh(100*(V(VCC,IPK)-0.3)))*2m) - V(std)*140u
       * comparator (1.25 V) and latch: set while charging if FB < 1.25 V, reset while discharging
-      Bcmp cmp GND V = 0.5*(1+tanh(300*(1.25-V(FB,GND))))
+      Bcmp cmp GND V = 0.5*(1+tanh(300*({vref}-V(FB,GND))))
       Bq q GND V = 0.5*(1+tanh(30*((1-V(std))*V(cmp) - V(std) + 0.8*(V(qd)-0.5))))
       Rqd q qd 100
       Cqd qd GND 50p
@@ -93,12 +95,13 @@ IRLZ44N:
     models: ".model CL_D1N5822 D(IS=4e-5 N=1.05 RS=0.015 BV=40 IBV=1e-3 CJO=3e-10)"
 
 L_POWER_3A:
-  description: Radial power inductor, 10 mm diameter, 5 mm pitch, 3 A rated (RMS) / 4 A saturation, DCR ~30 mOhm
+  description: Radial power inductor, 10 mm diameter, 5 mm pitch, 3 A rated (RMS) / 4 A saturation, +/-20 %, DCR ~30 mOhm
   kind: inductor
   package: ind_r10
   footprint: Inductor_THT:L_Radial_D10.0mm_P5.00mm_Fastron_07P
   mpn: "Radial power inductor 3A {value}"
   value: required
+  tolerance: 0.2
   pins:
     1: {name: "1"}
     2: {name: "2"}
@@ -115,7 +118,7 @@ L_POWER_3A:
 C_ELEC_25V_D10:
   description: >-
     Low-ESR aluminium electrolytic capacitor, 25 V, 10 mm diameter, 5 mm pitch, for
-    100-1000 uF; ripple current rating 1 A RMS (pin 1 = +)
+    100-1000 uF; ripple current rating 1 A RMS, +/-20 % (pin 1 = +)
   kind: electrolytic
   package: ecap_d10
   footprint: Capacitor_THT:CP_Radial_D10.0mm_P5.00mm
@@ -123,6 +126,7 @@ C_ELEC_25V_D10:
   value: required
   value_min: 100.0e-6
   value_max: 1000.0e-6
+  tolerance: 0.2
   pins:
     1: {name: POS}
     2: {name: NEG}
@@ -136,12 +140,13 @@ C_ELEC_25V_D10:
       R{ref}_esr {ref}_esr {2} 0.05
 
 R_1W:
-  description: Metal film resistor, 1 W, axial (15.24 mm lead pitch); also for low-ohm current sensing
+  description: Metal film resistor, 1 W, +/-5 %, axial (15.24 mm lead pitch); also for low-ohm current sensing
   kind: resistor
   package: axial_600
   footprint: Resistor_THT:R_Axial_DIN0414_L11.9mm_D4.5mm_P15.24mm_Horizontal
   mpn: "MF 1W {value}"
   value: required
+  tolerance: 0.05
   pins:
     1: {name: "1"}
     2: {name: "2"}

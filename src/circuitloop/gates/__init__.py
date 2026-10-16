@@ -18,6 +18,7 @@ from .base import GateResult, Status
 from .g1_build import run_g1
 from .g2_erc import run_g2
 from .g3_sim import SimOutput, fault_scenarios, g3_scenarios, run_faults, run_g3, run_regression
+from .g7_tolerance import run_tolerance
 
 
 @dataclass
@@ -56,7 +57,7 @@ def verify(
     later = (
         ["G2", "G3"]
         + (["G4"] if baseline is not None and not quick else [])
-        + (["G5"] if faults and not quick else [])
+        + (["G5", "G7"] if faults and not quick else [])
     )
     if not g1.result.passed or g1.netlist is None:
         rep.gates += [GateResult(g, "", Status.SKIPPED) for g in later]
@@ -89,4 +90,12 @@ def verify(
         rep.gates.append(run_faults(nl, ctx.db, ctx.spec, workdir / "faults", ctx.sim_timeout, sim_fn=sim_fn))
     elif faults and quick:
         rep.unverified.append("fault injection skipped (quick check)")
+    if faults and not quick:  # final verification: component tolerances
+        rep.gates.append(
+            run_tolerance(
+                nl, ctx.db, ctx.spec, workdir / "tolerance", ctx.sim_timeout, ctx.sim_jobs, sim.measurements
+            )
+        )
+    elif faults and quick:
+        rep.unverified.append("tolerance analysis skipped (quick check)")
     return VerifyOutcome(rep, nl, g1.netlist_path, sim, sim.measurements)

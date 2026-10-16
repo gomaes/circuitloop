@@ -39,6 +39,8 @@ class Scenario:
     name: str
     vin: float
     fault: Fault | None = None
+    # tolerance analysis: multiplicative factor per (ref, "value" | parameter name)
+    perturb: dict[tuple[str, str], float] = field(default_factory=dict)
 
 
 @dataclass
@@ -80,17 +82,20 @@ def build_deck(nl: Netlist, db: PartsDB, spec: Spec, sc: Scenario) -> Deck:
             deck.equivalent.append((ref, pd.spice.note or "equivalent model"))
         value = ""
         if pd.value == "required":
-            value = _fmt(parse_value(c.value))
+            value = _fmt(parse_value(c.value) * sc.perturb.get((ref, "value"), 1.0))
 
-        def sub(m: re.Match, ref=ref, value=value) -> str:
+        def sub(m: re.Match, ref=ref, value=value, pd=pd) -> str:
             key = m.group(1)
             if key == "ref":
                 return ref
             if key == "value":
                 return value
+            if key.startswith("p:"):
+                name = key[2:]
+                return _fmt(pd.spice.params[name].value * sc.perturb.get((ref, name), 1.0))
             return pin_node(ref, key)
 
-        body.append(re.sub(r"\{(ref|value|\d+)\}", sub, pd.spice.line or ""))
+        body.append(re.sub(r"\{(ref|value|\d+|p:\w+)\}", sub, pd.spice.line or ""))
         for num in sorted(pd.pins):
             net = nl.net_of(ref, num)
             outer = deck.node_of_net[net] if net is not None else f"nc_{ref.lower()}_{num}"

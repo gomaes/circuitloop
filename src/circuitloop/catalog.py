@@ -38,7 +38,15 @@ def render_catalog(db: PartsDB) -> str:
                     rat.append(f"P <= {fmt_si(r.max, 'W')}")
             lines.append(f"### `{p.key}`")
             lines.append(f"- {p.description}")
-            lines.append(f"- package: {p.package}; value: {'REQUIRED' if p.value == 'required' else 'fixed'}")
+            val = "REQUIRED" if p.value == "required" else "fixed"
+            if p.value == "required" and (p.value_min or p.value_max):
+                val += f" ({fmt_si(p.value_min or 0)}..{fmt_si(p.value_max) if p.value_max else 'any'})"
+            if p.tolerance:
+                val += f", tolerance ±{p.tolerance:.0%}"
+            lines.append(f"- package: {p.package}; value: {val}")
+            if p.spice and p.spice.params:
+                prm = "; ".join(f"{n} = {v.value:g} ±{v.tolerance:.0%}" for n, v in p.spice.params.items())
+                lines.append(f"- model parameters (with tolerance): {prm}")
             lines.append(f"- pins: {pins}")
             lines.append(f"- ratings: {'; '.join(rat)}")
             if p.decoupling:

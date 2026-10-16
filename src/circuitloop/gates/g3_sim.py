@@ -127,7 +127,7 @@ def run_g3(
                 Finding(
                     "sim.op",
                     Severity.ERROR,
-                    f"[{sc.name}] DC operating point did not converge",
+                    f"[{sc.name}] {wf.invalid_reason}",
                     hint="Look for floating nodes or positive feedback without hysteresis.",
                 )
             )
@@ -210,7 +210,7 @@ def run_faults(
                 Finding(
                     "fault.op",
                     Severity.ERROR,
-                    f"[{sc.name}] DC operating point did not converge; fault not verified",
+                    f"[{sc.name}] {wf.invalid_reason}; fault not verified",
                 )
             )
             continue

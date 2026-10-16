@@ -205,6 +205,15 @@ class Fault(_Model):
         return self
 
 
+class ToleranceAnalysis(_Model):
+    enabled: bool = Field(
+        True, description="Run G7 in the final verification (Phase 4 / verify --phase final)"
+    )
+    method: Literal["worst_case", "monte_carlo"] = "worst_case"
+    samples: int = Field(30, ge=1, le=1000, description="monte_carlo: number of samples")
+    seed: int = 1
+
+
 class Regression(_Model):
     max_drift: float | None = Field(
         None, gt=0, description="Max relative change of a criterion value vs. the Phase 1 baseline"
@@ -226,6 +235,7 @@ class Spec(_Model):
     protection: list[Protection] = Field(default_factory=list)
     faults: list[Fault] = Field(default_factory=list)
     regression: Regression = Field(default_factory=Regression)
+    tolerance: ToleranceAnalysis = Field(default_factory=ToleranceAnalysis)
     allow_incomplete_sim: bool = False
 
     @model_validator(mode="after")

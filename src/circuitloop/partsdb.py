@@ -81,6 +81,11 @@ class Rating(_M):
         return -self.max if self.min is None else self.min
 
 
+class SpiceParam(_M):
+    value: float
+    tolerance: float = Field(0.0, ge=0, lt=1, description="relative manufacturing tolerance (0.02 = +/-2 %)")
+
+
 class SpiceDef(_M):
     type: Literal["primitive", "subckt", "equivalent", "connector"]
     line: str | None = Field(None, description="Element template; {ref} {value} {<pin>} placeholders")
@@ -89,6 +94,9 @@ class SpiceDef(_M):
         None,
         description="External model file (e.g. a vendor .lib you downloaded), included with .include. "
         "Relative paths are relative to this YAML file; ~ is expanded. Not bundled with circuitloop.",
+    )
+    params: dict[str, SpiceParam] = Field(
+        default_factory=dict, description="model parameters used as {p:name} in `line` (with tolerances)"
     )
     compat: Literal["ps", "lt", "ki"] | None = Field(
         None, description="ngspice compatibility mode the model needs (ps = PSpice, lt = LTspice, ki = KiCad)"
@@ -119,6 +127,12 @@ class PartDef(_M):
     value: Literal["required", "fixed"] = "fixed"
     value_min: float | None = Field(None, description="smallest allowed value (the package fits this range)")
     value_max: float | None = Field(None, description="largest allowed value (the package fits this range)")
+    tolerance: float | None = Field(
+        None,
+        ge=0,
+        lt=1,
+        description="relative tolerance of the value (0.01 = +/-1 %), used by tolerance analysis",
+    )
     pins: dict[int, PinDef]
     ratings: list[Rating] = Field(min_length=1)
     decoupling: list[Decoupling] = Field(default_factory=list)
@@ -139,6 +153,9 @@ class PartDef(_M):
             if d.pin not in nums or d.gnd not in nums:
                 raise ValueError("decoupling refers to unknown pin")
         if self.spice and self.spice.line:
+            for name in re.findall(r"\{p:(\w+)\}", self.spice.line):
+                if name not in self.spice.params:
+                    raise ValueError(f"spice line uses undefined parameter {{p:{name}}}")
             for ph in re.findall(r"\{(\d+)\}", self.spice.line):
                 if int(ph) not in nums:
                     raise ValueError(f"spice line refers to unknown pin {ph}")

@@ -115,7 +115,9 @@ LM2940CT-5.0:
     - {pin: 3, gnd: 2, min: 2.2e-5}
   spice: &reg_spice
     type: subckt
-    line: "X{ref} {1} {2} {3} CL_REG params: vout=5 vdrop=0.5 iq=5m"
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=0.5 iq=5m"
+    params:
+      vout: {value: 5.0, tolerance: 0.03}   # approx. datasheet output tolerance; check your part
     models: |
       .subckt CL_REG IN GND OUT params: vout=5 vdrop=0.5 iq=5m
       Bv v GND V = max(min({vout}, V(IN,GND)-{vdrop}), 0)
@@ -144,7 +146,9 @@ L7805CV:
     - {pin: 3, gnd: 2, min: 1.0e-7}
   spice:
     <<: *reg_spice
-    line: "X{ref} {1} {2} {3} CL_REG params: vout=5 vdrop=2 iq=5m"
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=2 iq=5m"
+    params:
+      vout: {value: 5.0, tolerance: 0.04}   # approx. datasheet output tolerance; check your part
 
 L78L05:
   description: 5 V 100 mA linear regulator (1.7 V dropout), TO-92 (1=OUT 2=GND 3=IN)
@@ -165,4 +169,6 @@ L78L05:
     - {pin: 1, gnd: 2, min: 1.0e-7}
   spice:
     <<: *reg_spice
-    line: "X{ref} {3} {2} {1} CL_REG params: vout=5 vdrop=1.7 iq=3m"
+    line: "X{ref} {3} {2} {1} CL_REG params: vout={p:vout} vdrop=1.7 iq=3m"
+    params:
+      vout: {value: 5.0, tolerance: 0.05}   # approx. datasheet output tolerance; check your part
