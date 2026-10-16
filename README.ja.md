@@ -72,6 +72,26 @@ git clone https://github.com/gomaes/circuitloop.git && cd circuitloop && ./insta
 
 アンインストールは `./uninstall.sh` です。`--purge` を付けると `~/.config/circuitloop` も削除します。
 
+## エージェントのアカウントと利用規約
+
+circuitloop は認証情報を一切扱いません。**あなたの**PCに入っているエージェント CLI（`claude -p` か `opencode run`）を改変せずにそのまま呼び出し、その CLI に**あなた自身**が設定したログインや API キーで動きます。利用者はそれぞれ自分のアカウントを使ってください。
+
+| バックエンド | 認証方法 | 可否 |
+|---|---|---|
+| `claude`（Claude Code） | 自分の Claude Pro / Max / Team / Enterprise でのログイン（`claude` → `/login`） | ◯ 改変していない Claude Code に自分のサブスクリプションでサインインする使い方は認められている |
+| `claude`（Claude Code） | 自分の API キー（`ANTHROPIC_API_KEY`）、または Bedrock / Vertex / Foundry の認証情報 | ◯ 料金はキーの持ち主に請求される |
+| `opencode` | 各プロバイダーの API キー（Anthropic Console の API キーなど） | ◯ |
+| `opencode` | Claude Pro / Max のログイン | **使わないでください**。Anthropic はサードパーティのアプリで Claude.ai のサブスクリプションにログインすることを認めていません |
+
+次の使い方はできません。
+
+- **自分の** Pro/Max を使って、circuitloop をホスト型サービスとして提供したり、他人の代わりに実行したりすること（他人のためにサブスクリプションの認証情報を経由してリクエストを流すことに当たる）
+- 自分のログイン情報、`~/.claude` の認証情報、セッショントークンを共有・同梱すること
+
+circuitloop をサービスとして提供する場合は、Anthropic の Commercial Terms のもとで API キーかクラウドプロバイダーの認証を使ってください。また、Pro/Max の使用上限は通常の個人利用を前提にしています。`cloop run` は1回の実行でエージェントを何度も呼び出すので、自動で大量に回すなら API キーの利用をおすすめします。
+
+詳しくは Anthropic の [Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)、[Consumer Terms](https://www.anthropic.com/legal/consumer-terms)、[Commercial Terms](https://www.anthropic.com/legal/commercial-terms) を参照してください。この説明は法的助言ではなく、規約は変わることがあるので、最新版を確認してください。circuitloop は Anthropic とは無関係で、Anthropic の承認を受けたものでもありません。
+
 ## 使い方
 
 ```bash

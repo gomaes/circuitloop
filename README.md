@@ -62,6 +62,35 @@ commands for anything missing.
 
 `./uninstall.sh` removes the command (`--purge` also removes `~/.config/circuitloop`).
 
+## Agent accounts and terms of use
+
+circuitloop never handles credentials. It runs the agent CLI installed on **your** machine
+(`claude -p` or `opencode run`) unmodified, and that CLI uses whatever login or API key **you**
+configured. Every user must use their own account:
+
+| backend | authentication | status |
+|---|---|---|
+| `claude` (Claude Code) | your own Claude Pro / Max / Team / Enterprise login (`claude` → `/login`) | OK — signing in to the unmodified Claude Code binary with your own subscription is permitted |
+| `claude` (Claude Code) | your own API key (`ANTHROPIC_API_KEY`) or Bedrock / Vertex / Foundry credentials | OK — billed to the key owner |
+| `opencode` | an API key for your provider (e.g. an Anthropic Console API key) | OK |
+| `opencode` | Claude Pro / Max login | **Do not use** — Anthropic does not permit Claude.ai subscription login in third-party applications |
+
+Not allowed:
+
+- running circuitloop as a hosted service, or on other people's behalf, using **your** Pro/Max
+  subscription (routing requests through subscription credentials on behalf of others);
+- sharing or bundling your login, `~/.claude` credentials or session tokens.
+
+To offer circuitloop as a service, use API-key or cloud-provider authentication under Anthropic's
+Commercial Terms. Pro/Max usage limits assume ordinary individual use; a `cloop run` makes several
+agent calls, so heavy automated use is better served by an API key.
+
+See Anthropic's [Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)
+page and the [Consumer Terms](https://www.anthropic.com/legal/consumer-terms) /
+[Commercial Terms](https://www.anthropic.com/legal/commercial-terms). This summary is not legal
+advice and the terms may change — check the current versions. circuitloop is not affiliated with
+or endorsed by Anthropic.
+
 ## Quick start
 
 ```bash
