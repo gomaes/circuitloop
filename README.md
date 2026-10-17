@@ -33,6 +33,10 @@ spec.yaml ─► Phase 1 minimal design ─► Phase 2 gates G1-G3 ─┐  fix l
    then a failure report is written and `cloop` exits 1.
 5. **Everything is recorded.** Every attempt's prompt, agent output, design, netlist, simulation
    decks and reports are stored under `runs/<timestamp>/iter_NN/`.
+6. **Engineering knowledge lives in the tool, not in the model.** Design equations (topology
+   calculators), root-cause analysis of failures (diagnosis) and step budgets are deterministic
+   Python, so a small model only has to choose and apply them — see
+   [Topology library, diagnosis and agent budget](#topology-library-diagnosis-and-agent-budget).
 
 ## Install (Linux)
 
@@ -131,6 +135,7 @@ passed every gate (G1–G6, including fault injection) — open `layout.html` fo
 | `cloop run [spec.yaml]` | run the whole pipeline unattended |
 | `cloop run --from design\|harden\|reverify\|output [--run DIR]` | resume the latest (or given) run from a phase |
 | `cloop verify <design.py> [--spec] [--phase design\|final] [--baseline] [--quick]` | gates only, e.g. for a hand-edited design; `--quick` = nominal supply only, no faults (fast, not authoritative) |
+| `cloop topology list [--spec S]` / `show NAME` / `generate NAME --spec S -o design.py [--set k=v] [--minimal]` | topology library: deterministic design calculators that write a complete, commented design.py |
 | `cloop shopping-list [PROJECT] [--boards N] [--spares 0.1]` | everything to buy for the final design: components, IC sockets, perfboard size, wire lengths (also written to `output/shopping_list.*`) |
 | `cloop status [--json]` | progress/result of the latest run |
 | `cloop doctor` | check Python, ngspice, agent CLIs; print install hints |
@@ -173,8 +178,48 @@ See [`src/circuitloop/templates/spec.yaml`](src/circuitloop/templates/spec.yaml)
 - `tolerance` — `enabled` (default true), `method` (`worst_case` | `monte_carlo`), `samples`, `seed`.
 - `allow_incomplete_sim` — default `false`: a part without a SPICE/equivalent model makes the
   simulation **INCOMPLETE**, which fails the gate.
+- `topology` — optional `{name, params}`: generate the Phase 1 and hardened designs with this
+  calculator instead of the agent (the agent is then only called to fix failures).
 
 Pipeline settings (agent backend, model, timeouts, `max_iter`, reviewer on/off) live in `cloop.toml`.
+
+## Topology library, diagnosis and agent budget
+
+How well an LLM designs circuits varies a lot between models. circuitloop therefore keeps the
+engineering knowledge in deterministic code and leaves the model the smaller job of choosing and
+adjusting:
+
+**Topology library** (`cloop topology list --spec spec.yaml`). Each calculator derives its targets
+from the spec, sizes every part with the textbook equations, selects parts from the parts DB
+against the *derated* ratings, adds the protection the spec asks for and writes a complete
+`design.py` with the calculations as comments:
+
+| topology | method |
+|---|---|
+| `ldo_regulator` | picks the regulator whose Vout ± tolerance fits the window, whose dropout fits v_min after the protection drops and whose (Vin_max − Vout)·I + Vin·Iq fits the derated power; datasheet input/output capacitors |
+| `ne555_astable` | f = 1/(ln2 (Ra + 2Rb) C) with a film timing capacitor, Ra ≈ 7 % for ~50 % duty; LED resistor from (Vcc − Voh − Vf)/I, checked at v_max and against the input-power limit |
+| `noninverting_amp` | G = 1 + Rf/Rg from E24/E96, output-swing check at v_min, unused section terminated, input series resistor |
+| `mc34063_boost` | ON Semi AN920: ton/toff, CT, Ipk = 2 Iout (ratio + 1), Rsc = 0.3 V / Ipk, L = 2 Lmin, Co from 9 Iout ton / Vripple and parallel low-ESR caps so Ipk·ESR ≤ Vripple/2, FB divider, MOSFET gate pull-down ≤ toff / 5 Ciss |
+
+Agents are told which calculators fit the spec and may run `cloop topology generate` themselves
+(output restricted to their `design.py`). With `topology: {name: ...}` in the spec the pipeline
+generates the designs itself and never calls the agent unless a gate fails. When no topology can
+meet the spec, the generator says exactly why (e.g. which regulator fails which rating). A
+generated design is only a starting point: the gates decide, as always. The calculators use the
+typical datasheet figures in each part's `design:` entry (Vf, ESR, Ciss, dropout, …).
+
+**Diagnosis.** After a failed verification, deterministic diagnosers recompute the quantity behind
+the failure from the netlist and those figures — 555 frequency, op-amp gain and output swing,
+MC34063 set-point / current limit / gate turn-off time, ESR-dominated ripple, regulator headroom
+and dissipation, LED current, series drops in the supply path, causes of aborted transients — and
+add a **Diagnosis** section with the cause and a concrete value to change to the report the agent
+receives. Diagnosis is advice only and never affects pass/fail.
+
+**Agent budget.** Each agent step gets `agent.timeout` seconds (default 900) and at most
+`agent.max_self_checks` `cloop verify` calls (default 4). Inside a step, `cloop verify` is always a
+quick check and refuses further calls once the budget or the time is used up; the counter lives
+outside the agent's work directory. Whatever `design.py` exists when the step ends is verified
+authoritatively by the pipeline.
 
 ## Verification gates
 
@@ -231,7 +276,9 @@ INCOMPLETE. Parts that are not
 registered are an ERC error. Current ratings can be checked as `peak` (default), `average`
 (e.g. a diode's If(AV)) or `rms` (inductor / capacitor ripple / PTC hold current); power ratings are
 thermal and are compared with the average dissipation over the steady-state window. The bundled SPICE models are circuitloop's own behavioural models of
-typical datasheet behaviour — not vendor models.
+typical datasheet behaviour — not vendor models. The optional `design:` mapping holds typical
+datasheet figures (e.g. `vf`, `esr`, `ciss`, `dropout`, `vref`) used by the topology calculators
+and the diagnosis — never by the pass/fail checks.
 
 ## Perfboard layout
 
