@@ -26,6 +26,9 @@ class OpenCodeBackend(AgentBackend):
         if task.role == "designer":
             bash["cloop verify *"] = "allow"
             bash["cloop topology *"] = "allow"
+        elif task.role == "specwriter":
+            bash["cloop spec check *"] = "allow"
+            bash["cloop topology *"] = "allow"
         return {
             "permission": {
                 "*": "deny",

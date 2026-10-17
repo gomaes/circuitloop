@@ -23,6 +23,8 @@ class ClaudeBackend(AgentBackend):
         allowed = ["Read", "Grep", "Glob"] + [f"Edit(/{(task.workdir / w).resolve()})" for w in task.writable]
         if task.role == "designer":
             allowed += ["Bash(cloop verify *)", "Bash(cloop topology *)"]
+        elif task.role == "specwriter":
+            allowed += ["Bash(cloop spec check *)", "Bash(cloop topology *)"]
         cmd = [
             "claude",
             "-p",

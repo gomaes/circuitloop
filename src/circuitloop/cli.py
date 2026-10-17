@@ -432,6 +432,132 @@ def shopping_list(
     console.print(f"written: {csv_path}, {md_path}")
 
 
+spec_app = typer.Typer(help="Check specifications.", no_args_is_help=True)
+app.add_typer(spec_app, name="spec")
+
+
+@spec_app.command("check")
+def spec_check(file: Annotated[Path, typer.Argument(help="spec.yaml to check")] = Path("spec.yaml")) -> None:
+    """Validate a spec (schema + sanity checks) and list the topologies that fit it."""
+    from .specgen import check_file, summary
+    from .topologies import applicable
+
+    if not file.is_file():
+        err.print(f"[red]error:[/] {file} not found")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    sp, problems = check_file(file)
+    if sp is not None:
+        for line in summary(sp):
+            console.print(f"  {escape(line)}")
+        fits = [n for n, why in applicable(sp) if why is None]
+        console.print(
+            "fitting topologies: " + (", ".join(fits) or "none (the design is written by the agent)")
+        )
+    for p in problems:
+        err.print(f"[red]problem:[/] {escape(p)}")
+    if problems:
+        raise typer.Exit(EXIT_ENV_ERROR)
+    console.print("[green]spec OK[/]")
+
+
+@app.command()
+def new(
+    request: Annotated[str, typer.Argument(help='What to build, e.g. "USB 5 V to 12 V boost converter"')],
+    directory: Annotated[
+        Path | None, typer.Option("--dir", help="Project directory (default: ./<spec name>)")
+    ] = None,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Start the design run without asking")] = False,
+    no_run: Annotated[
+        bool, typer.Option("--no-run", help="Only write the spec; run later with `cloop run`")
+    ] = False,
+    agent: AgentOpt = None,
+    max_iter: MaxIterOpt = None,
+    jobs: JobsOpt = None,
+    verbose: VerboseOpt = False,
+) -> None:
+    """Write spec.yaml from a short request with the agent, then run the whole pipeline."""
+    from datetime import datetime
+
+    from . import EXIT_DESIGN_FAILED
+    from .agents import AgentError, make_backend
+    from .config import load_config
+    from .orchestrator import Orchestrator
+    from .partsdb import PartsDBError, load_db
+    from .specgen import generate_spec, summary
+
+    cfg = load_config(Path.cwd())
+    _resolve_agent(cfg, agent)
+    try:
+        backend = make_backend(cfg.agent)
+        db = load_db(None)
+    except (AgentError, PartsDBError) as e:
+        err.print(f"[red]error:[/] {e}")
+        raise typer.Exit(EXIT_ENV_ERROR) from e
+    if not backend.available():
+        err.print(f"[red]error:[/] agent CLI '{backend.executable}' not found (run `cloop doctor`)")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    if directory is not None and directory.exists() and any(directory.iterdir()):
+        err.print(f"[red]error:[/] {directory} already exists and is not empty")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    staging = Path.cwd() / ".cloop_new" / datetime.now().strftime("%Y%m%d-%H%M%S")
+    staging.mkdir(parents=True)
+    console.print(f"[bold]circuitloop new[/]: writing the specification ({backend.name}) ...")
+    res = generate_spec(
+        request, staging, backend, db, cfg.agent.timeout, log=lambda m: console.print(escape(m))
+    )
+    if not res.ok:
+        err.print(f"[red]could not produce a valid spec in {res.attempts} attempt(s):[/]")
+        for p in res.problems:
+            err.print(f"  - {escape(p)}")
+        err.print(f"agent logs and the last draft: {staging}")
+        raise typer.Exit(EXIT_DESIGN_FAILED)
+    sp = res.spec
+    dest = directory or Path.cwd() / sp.name
+    n = 1
+    while directory is None and dest.exists():
+        n += 1
+        dest = Path.cwd() / f"{sp.name}-{n}"
+    dest.mkdir(parents=True, exist_ok=True)
+    shutil.copy(res.spec_path, dest / "spec.yaml")
+    toml = template_path("cloop.toml").read_text()
+    toml = toml.replace('backend = "claude"', f'backend = "{cfg.agent.backend}"')
+    if cfg.agent.model:
+        toml = toml.replace('# model = "..."', f'model = "{cfg.agent.model}"')
+    (dest / "cloop.toml").write_text(toml)
+    (dest / "parts").mkdir(exist_ok=True)
+    (dest / "rules").mkdir(exist_ok=True)
+    (dest / ".gitignore").write_text("runs/\nspec_gen/\n")
+    (dest / "request.md").write_text(f"# Request\n\n{request.strip()}\n")
+    shutil.move(str(staging), dest / "spec_gen")
+    console.print(f"\nspecification written: [bold]{dest / 'spec.yaml'}[/]")
+    for line in summary(sp):
+        console.print(f"  {escape(line)}")
+    if sp.assumptions:
+        console.print("[yellow]assumptions (not stated in the request — check them):[/]")
+        for a in sp.assumptions:
+            console.print(f"  - {escape(a)}")
+    if no_run:
+        console.print(f"review/edit the spec, then: [bold]cd {dest} && cloop run[/]")
+        raise typer.Exit(EXIT_OK)
+    if not yes:
+        import sys
+
+        if not sys.stdin.isatty():
+            console.print(f"not starting without confirmation (use --yes); later: cd {dest} && cloop run")
+            raise typer.Exit(EXIT_OK)
+        if not typer.confirm("Start the design run with this specification?", default=True):
+            console.print(f"stopped; edit {dest / 'spec.yaml'} and run `cloop run` there")
+            raise typer.Exit(EXIT_OK)
+    pcfg = load_config(dest)
+    _resolve_agent(pcfg, agent)
+    if max_iter is not None:
+        pcfg.loop.max_iter = max_iter
+    if jobs is not None:
+        pcfg.loop.sim_jobs = jobs
+    code = Orchestrator(dest / "spec.yaml", pcfg, backend, console=console, verbose=verbose).run()
+    raise typer.Exit(code)
+
+
 def _resolve_agent(cfg, agent: str | None) -> None:
     if agent is not None:
         if agent not in ("claude", "opencode", "mock"):

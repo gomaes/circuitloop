@@ -163,6 +163,9 @@ def export_all(
         ]
     if pngs:
         extra += ["", "## Waveforms", ""] + [f"![{p.stem}]({p.name})" for p in pngs]
+    if spec.assumptions:
+        extra += ["", "## Assumptions in the specification (not stated in the request)", ""]
+        extra += [f"- {a}" for a in spec.assumptions]
     extra += ["", "## Items not verified by simulation", ""]
     extra += [f"- {u}" for u in outcome.report.unverified] or ["- none"]
     extra += [

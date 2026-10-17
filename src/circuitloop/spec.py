@@ -244,6 +244,11 @@ class Spec(_Model):
     regression: Regression = Field(default_factory=Regression)
     tolerance: ToleranceAnalysis = Field(default_factory=ToleranceAnalysis)
     allow_incomplete_sim: bool = False
+    assumptions: list[str] = Field(
+        default_factory=list,
+        description="Values the request did not state and that were filled with engineering defaults "
+        "(written by `cloop new`; shown in the final report)",
+    )
     topology: TopologyHint | None = Field(
         None,
         description="Generate the Phase 1 and hardened designs with this topology calculator instead of "
