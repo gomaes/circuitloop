@@ -11,6 +11,12 @@ and no part may exceed its absolute maximum ratings):
 
 $faults
 
+## Topology library
+
+$topologies
+
+## Checklist
+
 Use `ref/protection.md` as a checklist (reverse-polarity protection, fuse/PTC,
 TVS, input series resistors, pull-ups/pull-downs, bulk capacitance, ...). Apply
 what is relevant to this circuit; every added part must be justified.

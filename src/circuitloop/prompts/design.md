@@ -13,6 +13,10 @@ $common
 $spec
 ```
 
+## Start from the topology library (recommended)
+
+$topologies
+
 ## How to write design.py
 
 Read `ref/skidl_guide.md` (API and a complete example) and `ref/parts_catalog.md`

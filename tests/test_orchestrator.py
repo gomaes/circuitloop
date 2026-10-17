@@ -145,3 +145,23 @@ def test_resume_from_harden(tmp_path):
     assert _orch(proj, agent2).run("harden") == EXIT_OK
     st = RunState.load(latest_run(proj))
     assert st.status == "passed"
+
+
+@needs_ngspice
+def test_pipeline_with_topology_hint_needs_no_agent(tmp_path):
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    import yaml
+
+    raw = yaml.safe_load((EXAMPLES / "opamp_x10" / "spec.yaml").read_text())
+    raw["topology"] = {"name": "noninverting_amp"}
+    (proj / "spec.yaml").write_text(yaml.safe_dump(raw))
+    script = tmp_path / "script"
+    script.mkdir()
+    (script / "script.yaml").write_text("steps: []\n")  # any agent call would fail
+    code = Orchestrator(proj / "spec.yaml", Config(), MockBackend(script), console=Console(quiet=True)).run()
+    assert code == EXIT_OK
+    st = RunState.load(latest_run(proj))
+    assert {i["role"] for i in st.iterations} == {"topology", "verify"}
+    assert (proj / "output" / "final_report.md").is_file()
+    shutil.rmtree(proj / "runs")

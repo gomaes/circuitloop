@@ -220,6 +220,13 @@ class Regression(_Model):
     )
 
 
+class TopologyHint(_Model):
+    name: str = Field(description="Topology from the library (`cloop topology list`)")
+    params: dict[str, str | float | int | bool] = Field(
+        default_factory=dict, description="Parameter overrides (`cloop topology show NAME`)"
+    )
+
+
 class Spec(_Model):
     name: str = Field(pattern=r"^[A-Za-z0-9_\-]+$")
     description: str
@@ -237,6 +244,11 @@ class Spec(_Model):
     regression: Regression = Field(default_factory=Regression)
     tolerance: ToleranceAnalysis = Field(default_factory=ToleranceAnalysis)
     allow_incomplete_sim: bool = False
+    topology: TopologyHint | None = Field(
+        None,
+        description="Generate the Phase 1 and hardened designs with this topology calculator instead of "
+        "the agent; the agent is only called to fix verification failures",
+    )
 
     @model_validator(mode="after")
     def _consistency(self) -> Spec:
