@@ -6,6 +6,7 @@ NE555:
   package: dip8
   footprint: Package_DIP:DIP-8_W7.62mm
   mpn: NE555P
+  design: {voh_drop: 1.7, vcc_min: 4.5, iq: 0.003}
   pins:
     1: {name: GND, type: power_in}
     2: {name: TRIG, type: input}
@@ -57,6 +58,7 @@ LM358:
   package: dip8
   footprint: Package_DIP:DIP-8_W7.62mm
   mpn: LM358P
+  design: {voh_drop: 1.5, vcc_min: 3.0, iq: 0.0007}
   pins:
     1: {name: OUTA, type: output}
     2: {name: INNA, type: input}
@@ -102,6 +104,7 @@ LM2940CT-5.0:
   package: to220v
   footprint: Package_TO_SOT_THT:TO-220-3_Vertical
   mpn: LM2940CT-5.0
+  design: {vout: 5.0, dropout: 0.5, iq: 0.005}
   pins:
     1: {name: IN, type: power_in}
     2: {name: GND, type: power_in}
@@ -133,6 +136,7 @@ L7805CV:
   package: to220v
   footprint: Package_TO_SOT_THT:TO-220-3_Vertical
   mpn: L7805CV
+  design: {vout: 5.0, dropout: 2.0, iq: 0.005}
   pins:
     1: {name: IN, type: power_in}
     2: {name: GND, type: power_in}
@@ -156,6 +160,7 @@ L78L05:
   package: to92
   footprint: Package_TO_SOT_THT:TO-92_Inline
   mpn: L78L05ACZ
+  design: {vout: 5.0, dropout: 1.7, iq: 0.003}
   pins:
     1: {name: OUT, type: power_out}
     2: {name: GND, type: power_in}

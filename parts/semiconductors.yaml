@@ -6,6 +6,7 @@
   package: axial_400
   footprint: Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal
   mpn: 1N4007
+  design: {vf: 0.9}
   pins:
     1: {name: A}
     2: {name: K}
@@ -24,6 +25,7 @@
   package: axial_300
   footprint: Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal
   mpn: 1N4148
+  design: {vf: 0.75}
   pins:
     1: {name: A}
     2: {name: K}
@@ -42,6 +44,7 @@
   package: axial_400
   footprint: Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal
   mpn: 1N5819
+  design: {vf: 0.45}
   pins:
     1: {name: A}
     2: {name: K}
@@ -111,6 +114,7 @@ LED_RED_5MM:
   package: led_5mm
   footprint: LED_THT:LED_D5.0mm
   mpn: "LED 5mm red diffused"
+  design: {vf: 1.9}
   pins:
     1: {name: A}
     2: {name: K}
@@ -129,6 +133,7 @@ LED_GREEN_5MM:
   package: led_5mm
   footprint: LED_THT:LED_D5.0mm
   mpn: "LED 5mm green diffused"
+  design: {vf: 2.1}
   pins:
     1: {name: A}
     2: {name: K}

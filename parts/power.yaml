@@ -9,6 +9,7 @@ MC34063:
   package: dip8
   footprint: Package_DIP:DIP-8_W7.62mm
   mpn: MC34063ABP
+  design: {vref: 1.25, i_chg: 2.2e-05, i_dischg: 0.00014, ct_swing: 0.5, v_ipk: 0.3, v_drive: 1.0}
   pins:
     1: {name: SWC, type: passive}
     2: {name: SWE, type: passive}
@@ -60,6 +61,7 @@ IRLZ44N:
   package: to220v
   footprint: Package_TO_SOT_THT:TO-220-3_Vertical
   mpn: IRLZ44NPBF
+  design: {ciss: 1.7e-09, rds_on: 0.025, vgs_min: 3.0}
   pins:
     1: {name: G, type: input}
     2: {name: D}
@@ -81,6 +83,7 @@ IRLZ44N:
   package: axial_600
   footprint: Diode_THT:D_DO-201AD_P15.24mm_Horizontal
   mpn: 1N5822
+  design: {vf: 0.45}
   pins:
     1: {name: A}
     2: {name: K}
@@ -127,6 +130,7 @@ C_ELEC_25V_D10:
   value_min: 100.0e-6
   value_max: 1000.0e-6
   tolerance: 0.2
+  design: {esr: 0.05}
   pins:
     1: {name: POS}
     2: {name: NEG}
@@ -161,6 +165,7 @@ PTC_RXEF250:
   package: radial_200
   footprint: Fuse:Fuse_Littelfuse-LVR100
   mpn: RXEF250
+  design: {r: 0.07}
   pins:
     1: {name: "1"}
     2: {name: "2"}

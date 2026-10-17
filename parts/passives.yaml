@@ -55,6 +55,7 @@ C_FILM_100V:
   footprint: Capacitor_THT:C_Rect_L7.2mm_W2.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2
   mpn: "PET film 100V {value}"
   value: required
+  value_max: 1.0e-6
   tolerance: 0.1
   pins:
     1: {name: "1"}
@@ -72,6 +73,7 @@ C_ELEC_16V:
   value: required
   value_max: 100.0e-6
   tolerance: 0.2
+  design: {esr: 0.5}
   pins:
     1: {name: POS}
     2: {name: NEG}
@@ -88,6 +90,7 @@ C_ELEC_25V:
   value: required
   value_max: 100.0e-6
   tolerance: 0.2
+  design: {esr: 0.5}
   pins:
     1: {name: POS}
     2: {name: NEG}
@@ -104,6 +107,7 @@ C_ELEC_35V:
   value: required
   value_max: 100.0e-6
   tolerance: 0.2
+  design: {esr: 0.5}
   pins:
     1: {name: POS}
     2: {name: NEG}
@@ -117,6 +121,7 @@ PTC_RXEF020:
   package: radial_200
   footprint: Fuse:Fuse_Littelfuse-LVR100
   mpn: RXEF020
+  design: {r: 1.0}
   pins:
     1: {name: "1"}
     2: {name: "2"}
@@ -134,6 +139,7 @@ PTC_RXEF050:
   package: radial_200
   footprint: Fuse:Fuse_Littelfuse-LVR100
   mpn: RXEF050
+  design: {r: 0.4}
   pins:
     1: {name: "1"}
     2: {name: "2"}

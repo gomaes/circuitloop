@@ -41,6 +41,26 @@ Kind = Literal[
     "connector",
 ]
 
+# reference-designator prefix per kind (R1, C3, U2, ...)
+REF_PREFIX = {
+    "resistor": "R",
+    "capacitor": "C",
+    "electrolytic": "C",
+    "diode": "D",
+    "zener": "D",
+    "tvs": "D",
+    "led": "D",
+    "transistor": "Q",
+    "mosfet": "Q",
+    "regulator": "U",
+    "ic": "U",
+    "opamp": "U",
+    "ptc": "F",
+    "fuse": "F",
+    "inductor": "L",
+    "connector": "J",
+}
+
 
 class PartsDBError(Exception):
     pass
@@ -136,6 +156,11 @@ class PartDef(_M):
     pins: dict[int, PinDef]
     ratings: list[Rating] = Field(min_length=1)
     decoupling: list[Decoupling] = Field(default_factory=list)
+    design: dict[str, float] = Field(
+        default_factory=dict,
+        description="typical datasheet figures used by design calculators and diagnosis "
+        "(e.g. vf, esr, ciss, rds_on, dropout, vout, vref)",
+    )
     spice: SpiceDef | None = None
     source: str = ""
 

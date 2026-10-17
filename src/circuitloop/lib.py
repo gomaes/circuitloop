@@ -21,7 +21,7 @@ from pathlib import Path
 
 from skidl import ERC, POWER, SKIDL, Net, Part, Pin, generate_netlist
 
-from .partsdb import PartsDB, check_value, load_db
+from .partsdb import REF_PREFIX, PartsDB, check_value, load_db
 
 __all__ = ["Net", "part", "finish", "parts_db"]
 
@@ -32,24 +32,6 @@ _PIN_FUNC = {
     "power_in": Pin.types.PWRIN,
     "power_out": Pin.types.PWROUT,
     "bidirectional": Pin.types.BIDIR,
-}
-_PREFIX = {
-    "resistor": "R",
-    "capacitor": "C",
-    "electrolytic": "C",
-    "diode": "D",
-    "zener": "D",
-    "tvs": "D",
-    "led": "D",
-    "transistor": "Q",
-    "mosfet": "Q",
-    "regulator": "U",
-    "ic": "U",
-    "opamp": "U",
-    "ptc": "F",
-    "fuse": "F",
-    "inductor": "L",
-    "connector": "J",
 }
 _db: PartsDB | None = None
 
@@ -78,7 +60,7 @@ def part(key: str, value: str | float | None = None, ref: str | None = None) -> 
     p = Part(
         tool=SKIDL,
         name=key,
-        ref_prefix=_PREFIX[pd.kind],
+        ref_prefix=REF_PREFIX[pd.kind],
         value=val if val is not None else key,
         footprint=pd.footprint,
         pins=[Pin(num=n, name=pdef.name, func=_PIN_FUNC[pdef.type]) for n, pdef in pd.pins.items()],
