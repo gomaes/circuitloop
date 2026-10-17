@@ -3,9 +3,13 @@
 - You are one step in an automated pipeline. A deterministic verifier (not you, not
   another model) decides whether the design passes. You cannot change the pass criteria.
 - You may write **only**: $writable — use the Edit/Write tools on that file. The only
-  shell command available is `cloop verify ...` (one command, no `cd`, pipes or scripts);
-  anything else is denied. To inspect results, read the files `cloop verify` writes
-  (`report.md`, `sim/*/ngspice.log`) with the Read tool.
+  shell commands available are `cloop verify ...` and `cloop topology ...` (one command, no
+  `cd`, pipes or scripts); anything else is denied. To inspect results, read the files
+  `cloop verify` writes (`report.md`, `sim/*/ngspice.log`) with the Read tool.
+- **Budget for this step: at most $self_checks `cloop verify` self-checks and about
+  $minutes minutes.** Further self-checks are refused and the step is cut off at the time
+  limit; whatever `design.py` then contains is verified by the pipeline. Think first, then
+  check — do not iterate by trial and error.
 - Everything under `ref/` is read-only reference material. Any modification of `ref/`, the spec, the parts database, rules or the
   verifier is detected by hash and aborts the whole run as tampering.
 - Use **only** parts listed in `ref/parts_catalog.md`, instantiated with

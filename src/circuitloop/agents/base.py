@@ -31,7 +31,8 @@ class AgentTask:
     workdir: Path
     writable: list[str]  # file names (relative to workdir) the agent may write
     log_dir: Path
-    timeout: int = 1200
+    timeout: int = 900
+    env: dict[str, str] = field(default_factory=dict)  # extra environment (budget, agent mode)
 
 
 @dataclass
@@ -82,10 +83,12 @@ class AgentBackend(ABC):
     def _run(self, task: AgentTask) -> AgentResult: ...
 
     # helpers ---------------------------------------------------------------
-    def _env(self) -> dict[str, str]:
+    def _env(self, task: AgentTask | None = None) -> dict[str, str]:
         env = dict(os.environ)
         # make `cloop` (same installation) available for self-checks
         env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+        if task is not None:
+            env.update(task.env)
         return env
 
     def _spawn(

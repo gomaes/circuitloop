@@ -30,6 +30,7 @@ from rich.markup import escape
 
 from . import EXIT_DESIGN_FAILED, EXIT_ENV_ERROR, EXIT_OK, EXIT_TAMPERED, __version__
 from .agents import AgentBackend, AgentTask
+from .budget import Budget, records
 from .catalog import render_catalog
 from .config import Config
 from .gates import VerifyContext, VerifyOutcome, verify
@@ -399,14 +400,21 @@ class Orchestrator:
         work = self._workspace(it, design, refs, design_readonly=False)
         label = "generate" if attempt == 0 else f"fix #{attempt}"
         self._log(f"  \\[{it.name}] agent ({self.agent.name}) {role}: {label} ...")
-        task = AgentTask(role, instructions, work, ["design.py"], it / "agent", self.cfg.agent.timeout)
+        task = self._task(role, instructions, work, ["design.py"], it)
         res = self.agent.run(task)
+        used = len(records(it / "agent" / "self_checks.json"))
         self._log(
             f"  \\[{it.name}] agent finished in {res.duration_s:.0f}s"
+            + f" ({used}/{self.cfg.agent.max_self_checks} self-checks)"
             + ("" if res.ok else f" [yellow](agent error: {escape(res.error[:200])})[/]")
         )
         self._check_integrity(f"{it.name} ({phase} {role})")
         return it, work
+
+    def _task(self, role: str, instructions: str, work: Path, writable: list[str], it: Path) -> AgentTask:
+        timeout = self.cfg.agent.timeout
+        b = Budget(self.cfg.agent.max_self_checks, it / "agent" / "self_checks.json", time.time() + timeout)
+        return AgentTask(role, instructions, work, writable, it / "agent", timeout, env=b.env(work))
 
     def _verify_step(
         self, it: Path, work: Path, phase: int, baseline: dict | None = None
@@ -465,9 +473,7 @@ class Orchestrator:
         work = self._workspace(it, design, {}, design_readonly=True)
         instr = _tmpl("review.md", protection=", ".join(self.spec.protection) or "(none)")
         self._log(f"  \\[{it.name}] agent ({self.agent.name}) reviewer ...")
-        res = self.agent.run(
-            AgentTask("reviewer", instr, work, ["review.md"], it / "agent", self.cfg.agent.timeout)
-        )
+        res = self.agent.run(self._task("reviewer", instr, work, ["review.md"], it))
         self._check_integrity(f"{it.name} (review)")
         rv = work / "review.md"
         if not rv.is_file():
@@ -485,6 +491,8 @@ class Orchestrator:
         return _tmpl(
             "common.md",
             writable=", ".join(f"`{w}`" for w in writable),
+            self_checks=self.cfg.agent.max_self_checks,
+            minutes=max(1, round(self.cfg.agent.timeout / 60)),
             pos_net=self.spec.power_input.pos_net,
             ground_net=self.spec.ground_net,
         )

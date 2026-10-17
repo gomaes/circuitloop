@@ -2,7 +2,8 @@
 [agent]
 backend = "claude"       # claude | opencode
 # model = "..."          # optional, passed to the backend CLI
-timeout = 1200           # seconds per agent call
+timeout = 900            # seconds per agent call (the step is cut off after this)
+max_self_checks = 4      # `cloop verify` self-checks per agent step (always --quick)
 # max_budget_usd = 2.0   # claude only
 
 [loop]

@@ -163,6 +163,18 @@ def verify(
     if phase not in ("design", "final"):
         err.print("[red]error:[/] --phase must be 'design' or 'final'")
         raise typer.Exit(EXIT_ENV_ERROR)
+    from . import budget
+
+    agent_budget = budget.from_env()
+    if agent_budget is not None:  # running inside a pipeline agent step
+        ok, msg = budget.consume(agent_budget, f"{design} --phase {phase}")
+        if not ok:
+            err.print(f"[yellow]{msg}[/]")
+            raise typer.Exit(EXIT_ENV_ERROR)
+        if not quick:
+            msg += "; --quick applied (agent self-checks are always quick)"
+        quick = True
+        console.print(f"[dim]{msg}[/]")
     spec_path = _find_spec(spec, design.resolve().parent)
     sp = _load_spec_or_exit(spec_path)
     project = spec_path.resolve().parent

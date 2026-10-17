@@ -22,7 +22,7 @@ class ClaudeBackend(AgentBackend):
         # session's *current* directory, which moves when the agent runs commands elsewhere.
         allowed = ["Read", "Grep", "Glob"] + [f"Edit(/{(task.workdir / w).resolve()})" for w in task.writable]
         if task.role == "designer":
-            allowed.append("Bash(cloop verify *)")
+            allowed += ["Bash(cloop verify *)", "Bash(cloop topology *)"]
         cmd = [
             "claude",
             "-p",
@@ -44,7 +44,7 @@ class ClaudeBackend(AgentBackend):
 
     def _run(self, task: AgentTask) -> AgentResult:
         cmd = self.command(task)
-        rc, out, err, dt, msg = self._spawn(cmd, task, KICKOFF, self._env())
+        rc, out, err, dt, msg = self._spawn(cmd, task, KICKOFF, self._env(task))
         summary, cost, is_error = "", None, rc != 0
         try:
             data = json.loads(out)

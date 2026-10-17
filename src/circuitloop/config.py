@@ -20,7 +20,13 @@ class AgentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     backend: AgentName = "claude"
     model: str | None = None
-    timeout: int = Field(1200, gt=0, description="Seconds per agent call")
+    timeout: int = Field(900, gt=0, description="Seconds per agent call (the step is cut off after this)")
+    max_self_checks: int = Field(
+        4,
+        ge=0,
+        description="`cloop verify` self-checks an agent may run per step (always --quick); the pipeline "
+        "verifies authoritatively afterwards anyway",
+    )
     max_budget_usd: float | None = Field(None, gt=0, description="claude only: per-call budget cap")
     extra_args: list[str] = Field(default_factory=list)
 

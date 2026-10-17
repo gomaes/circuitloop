@@ -25,6 +25,7 @@ class OpenCodeBackend(AgentBackend):
         bash = {"*": "deny"}
         if task.role == "designer":
             bash["cloop verify *"] = "allow"
+            bash["cloop topology *"] = "allow"
         return {
             "permission": {
                 "*": "deny",
@@ -50,7 +51,7 @@ class OpenCodeBackend(AgentBackend):
 
     def _run(self, task: AgentTask) -> AgentResult:
         cmd = self.command(task)
-        env = self._env()
+        env = self._env(task)
         env["OPENCODE_CONFIG_CONTENT"] = json.dumps(self.permission_config(task))
         rc, out, err, dt, msg = self._spawn(cmd, task, None, env)
         texts = []
