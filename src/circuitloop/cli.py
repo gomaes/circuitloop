@@ -217,6 +217,102 @@ def _print_gate_table(report) -> None:
             console.print(f"  [red]{g.gate}[/] {f.rule}: {escape(f.message.splitlines()[0])}")
 
 
+topo_app = typer.Typer(
+    help="Topology library: deterministic design calculators that write a complete design.py.",
+    no_args_is_help=True,
+)
+app.add_typer(topo_app, name="topology")
+
+
+@topo_app.command("list")
+def topology_list(
+    spec: Annotated[Path | None, typer.Option("--spec", help="Show which topologies fit this spec")] = None,
+) -> None:
+    """List the available topologies (and whether they fit a spec)."""
+    from .topologies import TOPOLOGIES
+
+    sp = _load_spec_or_exit(spec) if spec else None
+    t = Table(title=f"{len(TOPOLOGIES)} topologies")
+    t.add_column("name")
+    if sp:
+        t.add_column("fits spec")
+    t.add_column("summary")
+    for name, top in TOPOLOGIES.items():
+        row = [name]
+        if sp:
+            why = top.applicable(sp)
+            row.append("[green]yes[/]" if why is None else f"[dim]no: {escape(why)}[/]")
+        t.add_row(*row, top.summary)
+    console.print(t)
+
+
+@topo_app.command("show")
+def topology_show(name: Annotated[str, typer.Argument(help="Topology name")]) -> None:
+    """Explain a topology's design equations and parameters."""
+    from .topologies import TOPOLOGIES
+
+    top = TOPOLOGIES.get(name)
+    if top is None:
+        err.print(f"[red]error:[/] unknown topology '{name}' (available: {', '.join(TOPOLOGIES)})")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    console.print(f"[bold]{name}[/] — {top.summary}\n\n{top.description}\n")
+    t = Table(title="parameters (--set name=value)")
+    for col in ("name", "default", "meaning"):
+        t.add_column(col)
+    for k, p in top.params.items():
+        t.add_row(k, p.default, p.help)
+    console.print(t)
+
+
+def _agent_output_ok(path: Path) -> bool:
+    """In an agent step, generated designs may only go to design.py in the agent's work directory."""
+    import os
+
+    work = os.environ.get("CLOOP_AGENT_WORKDIR")
+    return work is None or path.resolve() == (Path(work) / "design.py").resolve()
+
+
+@topo_app.command("generate")
+def topology_generate(
+    name: Annotated[str, typer.Argument(help="Topology name (see `cloop topology list`)")],
+    spec: Annotated[Path, typer.Option("--spec", help="spec.yaml", exists=True, dir_okay=False)] = Path(
+        "spec.yaml"
+    ),
+    output: Annotated[Path, typer.Option("--output", "-o", help="File to write")] = Path("design.py"),
+    sets: Annotated[
+        list[str] | None, typer.Option("--set", help="Override a parameter: name=value (repeatable)")
+    ] = None,
+    minimal: Annotated[
+        bool, typer.Option("--minimal", help="Leave out the protection listed in spec.protection")
+    ] = False,
+) -> None:
+    """Size every part for the spec and write a complete design.py (then run `cloop verify`)."""
+    from .partsdb import PartsDBError, load_db
+    from .topologies import TopologyError, generate
+
+    sp = _load_spec_or_exit(spec)
+    params = {}
+    for item in sets or []:
+        k, sep, v = item.partition("=")
+        if not sep:
+            err.print(f"[red]error:[/] --set expects name=value, got {item!r}")
+            raise typer.Exit(EXIT_ENV_ERROR)
+        params[k.strip()] = v.strip()
+    if not _agent_output_ok(output):
+        err.print("[red]error:[/] in a pipeline step the output must be design.py in the work directory")
+        raise typer.Exit(EXIT_ENV_ERROR)
+    try:
+        db = load_db(spec.resolve().parent)
+        gen = generate(name, sp, db, params, protect=not minimal)
+    except (TopologyError, PartsDBError) as e:
+        err.print(f"[red]cannot generate:[/] {escape(str(e))}")
+        raise typer.Exit(EXIT_ENV_ERROR) from e
+    output.write_text(gen.text)
+    for n in gen.notes:
+        console.print(f"  {escape(n)}")
+    console.print(f"written: {output} — verify it with: cloop verify {output} --spec {spec}")
+
+
 parts_app = typer.Typer(help="Manage the parts database.", no_args_is_help=True)
 app.add_typer(parts_app, name="parts")
 
