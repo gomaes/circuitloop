@@ -97,6 +97,22 @@ or endorsed by Anthropic.
 
 ## Quick start
 
+From a one-line request — the agent writes `spec.yaml`, you confirm it, the pipeline runs:
+
+```bash
+cloop new "USB 5 V to 12 V boost converter"      # --yes: no confirmation, --no-run: spec only
+```
+
+The agent fills everything the request leaves open (supply tolerance, load, output window,
+ripple, protection, fault cases) with conventional engineering values and lists each one under
+`assumptions:` — they are shown before the run starts and in the final report. The spec is
+accepted only when the schema and deterministic sanity checks pass (`cloop spec check`; up to 3
+attempts with the problems fed back). After confirmation it is protected like a hand-written spec:
+the design agents can never change it. The project goes to `./<spec name>/`, with the request in
+`request.md` and the spec-writing logs in `spec_gen/`.
+
+Or start from a template or an example and edit the spec yourself:
+
 ```bash
 cloop init my_ldo --example ldo_5v     # or: cloop init my_board (blank template)
 cd my_ldo
@@ -131,6 +147,8 @@ passed every gate (G1–G6, including fault injection) — open `layout.html` fo
 
 | command | purpose |
 |---|---|
+| `cloop new "<request>" [--dir D] [--yes] [--no-run]` | write `spec.yaml` from a short request (agent + deterministic checks), confirm, then run the pipeline |
+| `cloop spec check [spec.yaml]` | validate a spec (schema + sanity checks) and list the topologies that fit |
 | `cloop init <name> [--example X]` | create a project (spec.yaml, cloop.toml, parts/, rules/) |
 | `cloop run [spec.yaml]` | run the whole pipeline unattended |
 | `cloop run --from design\|harden\|reverify\|output [--run DIR]` | resume the latest (or given) run from a phase |
@@ -178,6 +196,7 @@ See [`src/circuitloop/templates/spec.yaml`](src/circuitloop/templates/spec.yaml)
 - `tolerance` — `enabled` (default true), `method` (`worst_case` | `monte_carlo`), `samples`, `seed`.
 - `allow_incomplete_sim` — default `false`: a part without a SPICE/equivalent model makes the
   simulation **INCOMPLETE**, which fails the gate.
+- `assumptions` — values the request did not state (written by `cloop new`); listed in the final report.
 - `topology` — optional `{name, params}`: generate the Phase 1 and hardened designs with this
   calculator instead of the agent (the agent is then only called to fix failures).
 

@@ -95,6 +95,16 @@ circuitloop をサービスとして提供する場合は、Anthropic の Commer
 
 ## 使い方
 
+1 行の依頼から始める場合は、エージェントが `spec.yaml` を書き、確認のあとパイプラインが動きます。
+
+```bash
+cloop new "USB 5V→12V 昇圧回路を設計して"      # --yes で確認なし、--no-run で仕様の作成だけ
+```
+
+依頼に書かれていない項目（電源電圧の幅、負荷、出力電圧の範囲、リップル、保護、故障条件など）は、エージェントが一般的な設計値で埋め、1 つずつ `assumptions:` に書き出します。これは実行前に表示され、最終レポートにも載ります。仕様はスキーマと決定的な妥当性チェック（`cloop spec check`）に通ったときだけ採用されます。通らなければ問題点を返して書き直させます（最大 3 回）。確認後の仕様は手書きの仕様と同じく保護され、設計エージェントは変更できません。プロジェクトは `./<仕様名>/` に作られ、依頼文は `request.md`、仕様作成のログは `spec_gen/` に残ります。
+
+テンプレートや例題から始めて、仕様を自分で書くこともできます。
+
 ```bash
 cloop init my_ldo --example ldo_5v     # 空のテンプレートなら: cloop init my_board
 cd my_ldo
@@ -132,6 +142,8 @@ ls output/
 
 | コマンド | 内容 |
 |---|---|
+| `cloop new "<依頼>" [--dir D] [--yes] [--no-run]` | 短い依頼から `spec.yaml` を作成し（エージェント＋決定的チェック）、確認後にパイプラインを実行する |
+| `cloop spec check [spec.yaml]` | 仕様を検査し（スキーマ＋妥当性チェック）、合うトポロジを表示する |
 | `cloop init <name> [--example X]` | プロジェクトを作成する（spec.yaml, cloop.toml, parts/, rules/） |
 | `cloop run [spec.yaml]` | 全パイプラインを無人実行する |
 | `cloop run --from design\|harden\|reverify\|output [--run DIR]` | 直近の run（または指定した run）を途中フェーズから再開する |
@@ -177,6 +189,7 @@ ls output/
   - `reverse_polarity` を保護要件に入れて故障条件を書かなかった場合は、標準の故障条件を自動で追加します。
 - `tolerance`: 公差解析の設定。`enabled`（デフォルト true）、`method`（`worst_case` か `monte_carlo`）、`samples`、`seed`。
 - `allow_incomplete_sim`: デフォルトは `false`。SPICE モデルも等価モデルもない部品があると「シミュレーション不完全（INCOMPLETE）」となり、ゲートは不合格になります。
+- `assumptions`: 依頼に書かれていなかった値（`cloop new` が書き込む）。最終レポートに表示します。
 - `topology`: 省略可。`{name, params}` を書くと、Phase 1 と保護追加後の設計をエージェントではなくこの計算器で生成します（エージェントは検証に落ちたときの修正にだけ呼ばれます）。
 
 パイプラインの設定（エージェントの種類、モデル、タイムアウト、`max_iter`、レビュー役の有無）は `cloop.toml` に書きます。
