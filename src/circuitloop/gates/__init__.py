@@ -98,4 +98,8 @@ def verify(
         )
     elif faults and quick:
         rep.unverified.append("tolerance analysis skipped (quick check)")
+    if not rep.passed:
+        from ..diagnose import diagnose
+
+        rep.diagnosis = [d.to_dict() for d in diagnose(nl, ctx.db, ctx.spec, rep, sim)]
     return VerifyOutcome(rep, nl, g1.netlist_path, sim, sim.measurements)

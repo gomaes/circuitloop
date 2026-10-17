@@ -4,6 +4,10 @@ The current `design.py` failed the deterministic verification gates. The full re
 in `ref/last_report.md` (summary below). Modify `design.py` to fix **every** error.
 Do not remove functionality the specification requires.$extra
 
+If the report has a **Diagnosis** section, start there: each entry is a deterministic
+calculation from the netlist and datasheet figures that names the likely cause and a
+concrete value to change.
+
 $common
 
 ## Verification report (summary)

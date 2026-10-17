@@ -15,6 +15,8 @@ class VerificationReport:
     phase: str
     gates: list[GateResult] = field(default_factory=list)
     unverified: list[str] = field(default_factory=list)
+    # deterministic root-cause analysis of the failures (advice only, never affects pass/fail)
+    diagnosis: list[dict] = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
@@ -30,6 +32,7 @@ class VerificationReport:
             "passed": self.passed,
             "gates": [g.to_dict() for g in self.gates],
             "unverified": self.unverified,
+            "diagnosis": self.diagnosis,
         }
 
     def to_markdown(self) -> str:
@@ -47,6 +50,17 @@ class VerificationReport:
             ne = sum(f.severity == Severity.ERROR for f in g.findings)
             nw = sum(f.severity == Severity.WARNING for f in g.findings)
             lines.append(f"| {g.gate} {g.title} | {icon[str(g.status)]} | {ne} | {nw} |")
+        if self.diagnosis:
+            lines += [
+                "",
+                "## Diagnosis (deterministic design calculations)",
+                "",
+                "Likely causes recomputed from the netlist and datasheet figures, with a concrete fix:",
+                "",
+            ]
+            for d in self.diagnosis:
+                lines.append(f"- **{d['topic']}**: {d['cause']}")
+                lines.append(f"  - fix: {d['fix']}")
         for g in self.gates:
             if not g.findings and not g.notes and not g.metrics.get("criteria"):
                 continue
