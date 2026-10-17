@@ -75,6 +75,8 @@ RETRY_OPTIONS = (
     # last resort: 1 pF from every node to ground (electrically negligible here) damps
     # the numerically stiff switch-node edges that otherwise abort the transient
     ".options cshunt=1e-12",
+    # 10 pF still is negligible next to the timing/gate capacitances of the converters here
+    ".options cshunt=1e-11",
 )
 
 
