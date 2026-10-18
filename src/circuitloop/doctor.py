@@ -76,6 +76,22 @@ def install_hint(tool: str, fam: str) -> str:
     return f"install {tool} with your distribution's package manager"
 
 
+def broken_hint(problem: str, fam: str) -> str:
+    """How to repair an installed but non-working ngspice."""
+    if re.search(r"GLIBC|GLIBCXX|not found \(required by|shared libraries|symbol lookup", problem):
+        if fam == "pacman":
+            return (
+                "the ngspice package was built for newer system libraries than are installed — a partial "
+                "upgrade. Run a full upgrade: sudo pacman -Syu (never `pacman -Sy <pkg>` alone)"
+            )
+        if fam == "apt":
+            return "library mismatch: reinstall ngspice from your release: sudo apt update && sudo apt install --reinstall ngspice"
+        if fam == "dnf":
+            return "library mismatch: sudo dnf upgrade --refresh && sudo dnf reinstall ngspice"
+        return "library mismatch: reinstall ngspice from the same release as your system libraries"
+    return "reinstall ngspice (" + install_hint("ngspice", fam) + ") and check `ngspice -b` on a small deck"
+
+
 def _version(cmd: list[str], pattern: str) -> str | None:
     try:
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
@@ -95,8 +111,14 @@ def run_checks(agent: str | None = None) -> list[Check]:
     )
 
     if shutil.which("ngspice"):
-        v = _version(["ngspice", "--version"], r"ngspice-(\S+)")
-        checks.append(Check("ngspice", True, True, f"ngspice {v}"))
+        from .sim.ngspice import smoke_test
+
+        problem = smoke_test()
+        if problem is None:
+            v = _version(["ngspice", "--version"], r"ngspice-(\S+)")
+            checks.append(Check("ngspice", True, True, f"ngspice {v} (test simulation ok)"))
+        else:
+            checks.append(Check("ngspice", False, True, problem, broken_hint(problem, fam)))
     else:
         checks.append(Check("ngspice", False, True, "not found in PATH", install_hint("ngspice", fam)))
 

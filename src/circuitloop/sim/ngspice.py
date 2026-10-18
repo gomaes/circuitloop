@@ -16,6 +16,18 @@ class SimError(Exception):
     pass
 
 
+class NgspiceUnavailable(SimError):
+    """ngspice itself cannot run (missing/broken installation) — an environment error, not a design error."""
+
+
+# loader / exec failures: the binary never got to read the deck
+_BROKEN = re.compile(
+    r"error while loading shared libraries|version `[^']+' not found|not found \(required by|"
+    r"cannot execute|exec format error|symbol lookup error",
+    re.I,
+)
+
+
 @dataclass
 class SimResult:
     plots: dict[str, Plot]
@@ -106,14 +118,39 @@ def _run_once(deck_text: str, workdir: Path, timeout: int, exe: str) -> tuple[di
         proc = subprocess.run(cmd, cwd=workdir, capture_output=True, text=True, timeout=timeout, env=env)
     except subprocess.TimeoutExpired as e:
         raise SimError(f"ngspice timed out after {timeout}s") from e
+    except OSError as e:
+        raise NgspiceUnavailable(f"ngspice cannot be started: {e}") from e
     log = proc.stdout + proc.stderr
     (workdir / "ngspice.log").write_text(log)
+    m_broken = _BROKEN.search(log)
+    if proc.returncode in (126, 127) or m_broken:
+        line = next((ln for ln in log.splitlines() if _BROKEN.search(ln)), log.strip()[:300])
+        raise NgspiceUnavailable(f"ngspice cannot run on this system: {line.strip()}")
     plots: dict[str, Plot] = {}
     for key in ("op", "tran"):
         f = workdir / f"{key}.raw"
         if f.is_file() and f.stat().st_size > 0:
             plots[key] = parse_raw(f)
     return plots, log
+
+
+def smoke_test(timeout: int = 60) -> str | None:
+    """Run a trivial deck. None if ngspice works, otherwise what is wrong (for doctor / Phase 0)."""
+    import tempfile
+
+    deck = "* cloop smoke test\nV1 a 0 1\nR1 a 0 1k\n.control\nop\nprint v(a)\n.endc\n.end\n"
+    exe = shutil.which("ngspice")
+    if exe is None:
+        return "ngspice not found in PATH"
+    with tempfile.TemporaryDirectory(prefix="cloop-smoke-") as d:
+        try:
+            _run_once(deck, Path(d), timeout, exe)
+        except SimError as e:
+            return str(e)
+        log = (Path(d) / "ngspice.log").read_text()
+    if not re.search(r"v\(a\)\s*=\s*1", log, re.I):
+        return "ngspice ran but did not produce a result: " + (log.strip()[-300:] or "(no output)")
+    return None
 
 
 def run_ngspice(deck_text: str, workdir: Path, timeout: int = 300) -> SimResult:

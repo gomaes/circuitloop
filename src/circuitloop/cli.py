@@ -197,16 +197,24 @@ def verify(
         sim_jobs=jobs or cfg.loop.sim_jobs,
     )
     final = phase == "final"
-    res = run_verify(
-        design,
-        outdir,
-        ctx,
-        phase=3 if final else 1,
-        baseline=base,
-        faults=final,
-        phase_label=f"cloop verify ({phase}{', quick' if quick else ''})",
-        quick=quick,
-    )
+    from .sim.ngspice import NgspiceUnavailable
+
+    try:
+        res = run_verify(
+            design,
+            outdir,
+            ctx,
+            phase=3 if final else 1,
+            baseline=base,
+            faults=final,
+            phase_label=f"cloop verify ({phase}{', quick' if quick else ''})",
+            quick=quick,
+        )
+    except NgspiceUnavailable as e:
+        err.print(
+            f"[red]error:[/] {escape(str(e))} — this is not a problem of the design (run `cloop doctor`)"
+        )
+        raise typer.Exit(EXIT_ENV_ERROR) from e
     j, m = res.report.write(outdir)
     if verbose:
         console.print(res.report.to_markdown())

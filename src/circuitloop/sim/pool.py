@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-from .ngspice import SimError, SimResult, run_ngspice
+from .ngspice import NgspiceUnavailable, SimError, SimResult, run_ngspice
 
 # Rough upper bound of memory per simulation incl. parsing its raw file in Python.
 MEM_PER_JOB = 300 * 1024 * 1024
@@ -80,10 +80,15 @@ def run_jobs(jobs: list[SimJob], max_workers: int) -> dict[Path, SimResult | Sim
             return e
 
     if max_workers <= 1 or len(jobs) <= 1:
-        return {j.workdir: one(j) for j in jobs}
-    with ThreadPoolExecutor(max_workers=max_workers) as ex:  # ngspice runs out-of-process
-        results = list(ex.map(one, jobs))
-    return {j.workdir: r for j, r in zip(jobs, results, strict=True)}
+        out = {j.workdir: one(j) for j in jobs}
+    else:
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:  # ngspice runs out-of-process
+            results = list(ex.map(one, jobs))
+        out = {j.workdir: r for j, r in zip(jobs, results, strict=True)}
+    broken = next((r for r in out.values() if isinstance(r, NgspiceUnavailable)), None)
+    if broken is not None:  # nothing about the design can be concluded: stop instead of reporting it
+        raise broken
+    return out
 
 
 SimFn = Callable[[str, Path, int], SimResult]

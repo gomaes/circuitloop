@@ -39,6 +39,7 @@ from .partsdb import PartsDB, PartsDBError, load_db
 from .report import VerificationReport
 from .resources import PKG_DIR, data_dir, prompt_path
 from .results import Finding, GateResult, Severity, Status
+from .sim.ngspice import NgspiceUnavailable
 from .spec import Spec, SpecError, load_spec
 
 PHASES = ("design", "harden", "reverify", "output")
@@ -120,8 +121,11 @@ class Orchestrator:
             self.db = load_db(self.project)
         except PartsDBError as e:
             raise PipelineStop(EXIT_ENV_ERROR, f"parts DB error: {e}") from e
-        if shutil.which("ngspice") is None:
-            raise PipelineStop(EXIT_ENV_ERROR, "ngspice not found (run `cloop doctor`)")
+        from .sim.ngspice import smoke_test
+
+        problem = smoke_test()
+        if problem is not None:
+            raise PipelineStop(EXIT_ENV_ERROR, f"{problem} (run `cloop doctor`)")
         if not self.agent.available():
             raise PipelineStop(
                 EXIT_ENV_ERROR, f"agent CLI '{self.agent.executable}' not found (run `cloop doctor`)"
@@ -207,19 +211,22 @@ class Orchestrator:
             self.state.status, self.state.message = "passed", "all phases passed"
             self._log(f"[green bold]PASSED[/] — outputs in {self.project / 'output'}")
             return EXIT_OK
+        except NgspiceUnavailable as e:  # broke during the run (e.g. a package upgrade): not a design error
+            return self._stopped(PipelineStop(EXIT_ENV_ERROR, f"{e} (run `cloop doctor`)"))
         except PipelineStop as e:
-            if hasattr(self, "state"):
-                self.state.status = {EXIT_TAMPERED: "tampered", EXIT_DESIGN_FAILED: "failed"}.get(
-                    e.code, "error"
-                )
-                self.state.message = e.message
-            color = "red" if e.code != EXIT_ENV_ERROR else "yellow"
-            self._log(f"[{color} bold]STOPPED[/] ({e.code}): {escape(e.message)}")
-            return e.code
+            return self._stopped(e)
         finally:
             if hasattr(self, "state"):
                 self.state.finished = datetime.now().isoformat(timespec="seconds")
                 self.state.save()
+
+    def _stopped(self, e: PipelineStop) -> int:
+        if hasattr(self, "state"):
+            self.state.status = {EXIT_TAMPERED: "tampered", EXIT_DESIGN_FAILED: "failed"}.get(e.code, "error")
+            self.state.message = e.message
+        color = "red" if e.code != EXIT_ENV_ERROR else "yellow"
+        self._log(f"[{color} bold]STOPPED[/] ({e.code}): {escape(e.message)}")
+        return e.code
 
     # ----------------------------------------------------------------- phases
     def _resume_design(self, phase: str) -> Path:
