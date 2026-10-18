@@ -51,7 +51,7 @@ def sanity(spec: Spec) -> list[str]:
             if c.min > pin.v_max and spec.transient is not None and spec.transient.step > 1e-6:
                 out.append(
                     "a step-up converter switches at ~50-100 kHz: transient.step must be <= 1e-6 "
-                    "(see examples/usb_boost_12v: step 0.2e-6, settle >= 20 ms, save_window_only)"
+                    "(well below one switching period; use save_step / save_window_only)"
                 )
     if spec.transient is not None:
         tr = spec.transient

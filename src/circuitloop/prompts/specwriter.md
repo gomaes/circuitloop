@@ -14,22 +14,22 @@ every requirement must be a number the simulator can check.
   `cloop spec check spec.yaml` (validates your file and lists fitting topologies) and
   `cloop topology ...`. Run `cloop spec check spec.yaml` before you finish and fix everything it reports.
 - Follow the schema in `ref/spec_schema.json`; `ref/spec_template.yaml` explains each field and
-  `ref/examples/*.yaml` are complete, working specs — copy their structure (in particular the
-  `transient` section of `usb_boost_12v.yaml` for switching converters).
+  `ref/examples/*.yaml` show complete, working specs of other circuits (use them for the
+  structure, not for the numbers of your circuit).
 - Keep the request's own words in `description`.
 - **Do not invent requirements silently.** For everything the request leaves open, choose a
   conventional, conservative engineering value and record each choice in `assumptions:` as one
   short sentence (what you assumed and why), for example:
-  - supply tolerance (USB: 4.75-5.25 V at the board, source_resistance 0.15 ohm for cable + charger;
-    9 V battery: 7.0-9.6 V; 12 V adapter: 11-13 V),
-  - output current / load, output voltage window (typically +/-5 %), ripple limit (~1 % of the
-    output), frequency window, gain window,
-  - input current limits of the source (USB charger: its rating, keep 10 % margin),
-  - protection the use case needs (`reverse_polarity` for battery snaps and barrel jacks,
-    `overcurrent` for USB and other limited sources, `input_protection` for external signal
-    inputs) and matching `faults` entries with numeric expectations.
-- Through-hole parts only (`parts_policy.tht_only: true`); choose a board size that fits
-  (`max_cols`/`max_rows` in 2.54 mm holes, e.g. 34 x 26 for a converter).
+  - the supply's real voltage range at the board (tolerance, battery discharge, cable drop) and
+    its source resistance,
+  - output current / load, output voltage window, ripple limit, frequency window, gain window,
+  - input current limits of the source, with margin,
+  - protection the use case needs (`reverse_polarity`, `overcurrent`, `overvoltage`,
+    `input_protection`, `esd`) and matching `faults` entries with numeric expectations.
+- Through-hole parts only (`parts_policy.tht_only: true`); choose a board size that fits the
+  parts (`max_cols`/`max_rows` in 2.54 mm holes).
+- Switching circuits need a fine `transient.step` (well below one switching period), a `settle`
+  long enough for start-up and `save_step` / `save_window_only` to keep the output small.
 - Only request what the parts in `ref/parts_catalog.md` can achieve; if the request is impossible
   with them, still write the closest feasible spec and say so in `assumptions`.
 - If `cloop spec check` lists a fitting topology and the request does not ask for a different
