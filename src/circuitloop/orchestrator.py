@@ -481,6 +481,9 @@ class Orchestrator:
         )
         outcome.report.write(it)
         self._check_integrity(f"{it.name} verification")
+        if not self.cfg.loop.keep_raw:  # measurements and waveforms for the outputs stay in memory
+            for raw in (it / "verify").rglob("*.raw"):
+                raw.unlink(missing_ok=True)
         summary = ", ".join(f"{g.gate}:{g.status}" for g in outcome.report.gates)
         color = "green" if outcome.report.passed else "red"
         self._log(f"  \\[{it.name}] gates ({time.monotonic() - t0:.0f}s): [{color}]{summary}[/]")

@@ -40,6 +40,11 @@ class LoopConfig(BaseModel):
         None, ge=1, description="Parallel ngspice processes (default: automatic = min(CPUs, scenarios))"
     )
     review: bool = True
+    keep_raw: bool = Field(
+        False,
+        description="Keep ngspice raw waveform files of every iteration (they reach GBs per run); the "
+        "decks, logs, reports and output waveform plots are always kept",
+    )
 
 
 class Config(BaseModel):

@@ -12,3 +12,4 @@ design_timeout = 120     # seconds for running design.py
 sim_timeout = 300        # seconds per ngspice run
 # sim_jobs = 4           # parallel ngspice processes (default: automatic)
 review = true            # run the reviewer agent in Phase 3
+keep_raw = false         # keep raw ngspice waveforms of every iteration (can reach GBs per run)
