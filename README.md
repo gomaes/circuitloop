@@ -30,7 +30,9 @@ spec.yaml ─► Phase 1 minimal design ─► Phase 2 gates G1-G3 ─┐  fix l
    called for one step at a time with deny-by-default permissions (read anything, write only
    `design.py`, optionally run `cloop verify`).
 4. **Bounded loops.** Each phase gets the initial attempt plus up to `max_iter` fixes (default 5);
-   then a failure report is written and `cloop` exits 1.
+   then a failure report is written and `cloop` exits 1. A spec that the registered parts provably
+   cannot meet is reported as such (exit 4) instead — see
+   [When the spec asks for more than the parts allow](#when-the-spec-asks-for-more-than-the-parts-allow).
 5. **Everything is recorded.** Every attempt's prompt, agent output, design, netlist, simulation
    decks and reports are stored under `runs/<timestamp>/iter_NN/`.
 6. **Engineering knowledge lives in the tool, not in the model.** Design equations (topology
@@ -109,7 +111,10 @@ ripple, protection, fault cases) with conventional engineering values and lists 
 accepted only when the schema and deterministic sanity checks pass (`cloop spec check`; up to 3
 attempts with the problems fed back). After confirmation it is protected like a hand-written spec:
 the design agents can never change it. The project goes to `./<spec name>/`, with the request in
-`request.md` and the spec-writing logs in `spec_gen/`.
+`request.md` and the spec-writing logs in `spec_gen/`. If the final tolerance analysis proves an
+acceptance window narrower than the registered parts allow, `cloop new` widens it by the smallest
+amount the verified design passes, records that under `assumptions` and finishes the run
+(`--no-relax`: report only).
 
 Or start from a template or an example and edit the spec yourself:
 
@@ -147,10 +152,10 @@ passed every gate (G1–G6, including fault injection) — open `layout.html` fo
 
 | command | purpose |
 |---|---|
-| `cloop new "<request>" [--dir D] [--yes] [--no-run]` | write `spec.yaml` from a short request (agent + deterministic checks), confirm, then run the pipeline |
+| `cloop new "<request>" [--dir D] [--yes] [--no-run] [--no-relax]` | write `spec.yaml` from a short request (agent + deterministic checks), confirm, then run the pipeline; an infeasible tolerance window is relaxed minimally (see below) |
 | `cloop spec check [spec.yaml]` | validate a spec (schema + sanity checks) and list the topologies that fit |
 | `cloop init <name> [--example X]` | create a project (spec.yaml, cloop.toml, parts/, rules/) |
-| `cloop run [spec.yaml]` | run the whole pipeline unattended |
+| `cloop run [spec.yaml] [--relax]` | run the whole pipeline unattended; `--relax`: widen an infeasible window minimally and continue |
 | `cloop run --from design\|harden\|reverify\|output [--run DIR]` | resume the latest (or given) run from a phase |
 | `cloop verify <design.py> [--spec] [--phase design\|final] [--baseline] [--quick]` | gates only, e.g. for a hand-edited design; `--quick` = nominal supply only, no faults (fast, not authoritative) |
 | `cloop topology list [--spec S]` / `show NAME` / `generate NAME --spec S -o design.py [--set k=v] [--minimal]` | topology library: deterministic design calculators that write a complete, commented design.py |
@@ -172,7 +177,8 @@ process's CPU affinity and cgroup CPU quota (containers). Override with `--jobs 
 on the previous report).
 
 Exit codes: **0** success · **1** design failed (iteration limit) · **2** configuration/environment
-error · **3** tampering detected.
+error · **3** tampering detected · **4** the spec cannot be met with the registered parts
+(`spec_infeasible.md`, `relaxation.json`).
 
 ## The specification (`spec.yaml`)
 
@@ -200,7 +206,8 @@ See [`src/circuitloop/templates/spec.yaml`](src/circuitloop/templates/spec.yaml)
 - `topology` — optional `{name, params}`: generate the Phase 1 and hardened designs with this
   calculator instead of the agent (the agent is then only called to fix failures).
 
-Pipeline settings (agent backend, model, timeouts, `max_iter`, reviewer on/off) live in `cloop.toml`.
+Pipeline settings (agent backend, model, timeouts, `max_iter`, reviewer on/off, `max_relax`,
+`relax_rounds`) live in `cloop.toml`.
 
 ## Topology library, diagnosis and agent budget
 
@@ -249,8 +256,38 @@ authoritatively by the pipeline.
 | G3 simulation | ngspice at each supply corner: acceptance criteria and every rating (voltage, current, power) × derating; per-pin 0 V ammeters make this work for subcircuits too |
 | G4 regression | Phase 1 measurements still within acceptance (optionally `regression.max_drift`) |
 | G5 fault injection | reversed supply / over-voltage: net limits, input current, absolute maximum ratings |
-| G7 tolerance | final verification only: every part value and model parameter with a tolerance (resistors ±1 %, ceramics ±10 %, electrolytics/inductors ±20 %, regulator/reference voltages ±2–5 %) pushed to its worst-case extreme per criterion (sensitivity-based extreme value analysis, at the supply corner with the least margin), or Monte Carlo (`tolerance.method: monte_carlo`); acceptance criteria and derated ratings must still hold |
+| G7 tolerance | final verification only: every part value and model parameter with a tolerance (resistors ±0.1 / 1 / 5 %, capacitors ±1 / 5 / 10 / 20 %, inductors ±10–20 %, regulator/reference voltages ±1–5 %) pushed to its worst-case extreme per criterion (sensitivity-based extreme value analysis, at the supply corner with the least margin), or Monte Carlo (`tolerance.method: monte_carlo`); acceptance criteria and derated ratings must still hold |
 | G6 layout | placement/routing re-extracted with union-find and compared to the netlist (opens, shorts, overlaps, board size) |
+
+### When the spec asks for more than the parts allow
+
+A two-sided window (`min`/`max`) can be narrower than the worst-case spread the parts' tolerances
+cause — e.g. ±10 % on an RC oscillator whose capacitors are ±10 % themselves. No design can pass
+that, so circuitloop does not let the agent burn its fix attempts on it. When Phase 4 fails only in
+G7, a deterministic analysis (`feasibility.py`) uses G7's sensitivities to estimate the spread
+with the tightest-tolerance registered part of each kind:
+
+| verdict | meaning | what happens |
+|---|---|---|
+| `recenter` | the spread fits, the nominal value is off-centre | diagnosis says by how much to move it; the fix loop continues |
+| `tighter_parts` | it fits with tighter registered parts | diagnosis lists them (e.g. `C4 C_FILM_100V ±10 % -> C_CER_C0G_1PCT ±1 %`); the fix loop continues |
+| `infeasible` | not even the tightest registered parts fit | the run stops with **exit 4** and `spec_infeasible.md` |
+
+`spec_infeasible.md` states the calculation and the **smallest relaxation the current design
+passes**: each violated limit moves exactly to the design's verified worst-case range, rounded
+outward to 0.1 % of the window centre (`relaxation.json` holds the same as data). One-sided limits
+(ripple, input power/current) can always be met with more design margin and are never declared
+infeasible. Design agents may also write `spec_issue.md` when they are certain a requirement cannot
+be met (e.g. no registered part can do it); it is quoted, marked as unverified, in the reports.
+
+- `cloop new` applies the relaxation automatically (turn off with `--no-relax`): it rewrites only
+  those numbers in `spec.yaml` (comments kept), records the change under `assumptions`, keeps the
+  previous file in `spec_history/` and continues at Phase 4 with the same design — relaxing only
+  widens limits, so the Phase 1–3 results stay valid.
+- `cloop run --relax` does the same for a hand-written spec, including applying the proposal of a
+  run that already stopped with exit 4. Without `--relax`, `cloop run` only reports.
+- A relaxation that would move a limit by more than `loop.max_relax` (default 10 % of the window
+  centre) is never applied automatically; at most `loop.relax_rounds` (2) relaxations per run.
 
 ### Custom ERC rules
 
@@ -274,8 +311,26 @@ Project rules are hashed like the spec; agents cannot add or edit them.
 
 ### Parts database
 
-YAML files in `parts/` (bundled), `~/.config/circuitloop/parts/` and `<project>/parts/`. Each part
-has pins (name/type), absolute-maximum ratings, optional decoupling requirements, a perfboard
+YAML files in `parts/` (bundled), `~/.config/circuitloop/parts/` and `<project>/parts/`.
+
+The bundled DB (`cloop parts list`, about 145 parts) covers typical through-hole hobby parts:
+resistors (metal film ±1 % 1/8–1/2 W, precision ±0.1 %, carbon film ±5 %, metal oxide 1–3 W, cement
+5 W), capacitors (X7R, C0G ±5 % / ±1 %, PET ±10 % / ±5 %, PP ±5 % / ±1 %, electrolytics 6.3–100 V
+and low-ESR 16–50 V up to several mF), inductors (axial chokes, 8 / 10 / 12.5 mm radial, toroids
+up to 10 A), PTCs 0.1–2.5 A and 5×20 mm fuses, rectifier / Schottky / ultrafast diodes up to 10 A,
+Zener (1 W, 0.5 W) and TVS (600 W, 1500 W) families by voltage, LEDs, a bridge rectifier, BJTs (BC547/557,
+PN2222A/2907A, BD139/140, TIP31/32/41/42, TIP120/125), MOSFETs (2N7000, BS170, logic-level and
+standard N-channel, P-channel), op-amps (LM358, LM324, TL072, NE5532, MCP6002), comparators
+(LM393, LM339), 555 timers (NE555, TLC555), linear regulators (78xx 5–24 V, 78Lxx, LM2940,
+LD1117 3.3/5 V, LM3940, LP2950, MCP1700, LM317), switching regulators (MC34063; LM2596 / LM2576
+/ LM2575 buck, fixed 3.3 / 5 / 12 V and adjustable) and connectors.
+
+A part family can list `sizes`: data that changes with the value — body (package/footprint),
+`design:` figures and ratings — e.g. an electrolytic whose can, ESR and ripple-current rating
+follow the capacitance. `{d:name}` in a SPICE line inserts such a figure (`{d:esr}`). Keys starting
+with `.` are YAML-anchor templates, not parts.
+
+Each part has pins (name/type), absolute-maximum ratings, optional decoupling requirements, a perfboard
 package and a SPICE model (`primitive`, `subckt`, `equivalent` or `connector`). A model can also
 come from a vendor model file you downloaded yourself — circuitloop never bundles vendor models,
 whose licences often forbid redistribution:

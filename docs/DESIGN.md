@@ -120,6 +120,8 @@ limits: {max_iter: 5}
 - G6 として基板の接続を union-find で再抽出し、ネットリストと照合する。
 - 外部接続ネット（電源・負荷・信号）はコネクタに出すことを ERC で要求する。
 - G7 公差解析（感度ベースのワーストケース EVA または Monte Carlo）を最終検証に含める。
+- 仕様の実現可能性（`src/circuitloop/feasibility.py`）: Phase 4 が G7 の両側範囲だけで落ちたとき、G7 の感度と部品 DB の最小公差から「最も公差の小さい登録部品でのばらつき」を見積もり、`recenter` / `tighter_parts` / `infeasible` を判定する。`infeasible`（かつ設計が中心にあり、より公差の小さい部品も残っていない）なら終了コード 4 で即停止し、検証済みワーストケースを覆う最小の緩和を `relaxation.json` に出す。`cloop new` と `cloop run --relax` はそれを `spec.yaml` に反映し（コメントは保持、`assumptions` に記録、旧版は `spec_history/`）、同じ設計で Phase 4 から続行する（`Orchestrator.run(carry=...)`）。緩和は範囲を広げるだけなので Phase 1〜3 の結果は有効。自動緩和は `loop.max_relax`（範囲中心の 10%）以内に限る。
+- 部品 DB の `sizes`: 値に依存するパッケージ・フットプリント・`design:`・定格（同種の定格を置換）。配置・BOM・SPICE・定格判定はすべて `db.resolve(key, value)` を通す。SPICE 行の `{d:name}` は解決後の `design` 値。
 - モデル性能への依存を減らすため、設計知識をツール側に置く:
   - トポロジライブラリ（`src/circuitloop/topologies/`）: 仕様から目標値を導き、教科書の設計式で全部品を計算して design.py を生成する。部品はディレーティング後の定格で DB から選ぶ。生成物は出発点であり、合否はゲートが決める。spec の `topology` を指定すると、エージェントを呼ばずに設計を生成する。
   - 決定的診断（`src/circuitloop/diagnose.py`）: 失敗時にネットリストと部品の `design:`（データシート代表値）から原因量を再計算し、具体的な修正値をレポートの Diagnosis 節に書く。合否には影響しない。
