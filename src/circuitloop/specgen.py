@@ -53,6 +53,9 @@ def sanity(spec: Spec) -> list[str]:
                     "a step-up converter switches at ~50-100 kHz: transient.step must be <= 1e-6 "
                     "(well below one switching period; use save_step / save_window_only)"
                 )
+    from .consistency import fault_conflicts
+
+    out += [str(c) for c in fault_conflicts(spec)]
     if spec.transient is not None:
         tr = spec.transient
         window = tr.stop - tr.settle
@@ -133,7 +136,7 @@ def generate_spec(
         log_dir = workdir / "agent" / f"attempt_{attempt:02d}"
         b = Budget(0, log_dir / "self_checks.json", None)
         task = AgentTask("specwriter", instr, workdir, ["spec.yaml"], log_dir, timeout, env=b.env(workdir))
-        log(f"  spec attempt {attempt}: agent ({backend.name}) writing spec.yaml ...")
+        log(f"  spec attempt {attempt}: agent ({backend.label}) writing spec.yaml ...")
         out = backend.run(task)
         if not out.ok:
             log(f"  agent error: {out.error[:200]}")

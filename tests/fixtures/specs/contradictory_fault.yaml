@@ -1,0 +1,25 @@
+# From blind benchmark 2 (C2): low-side motor switch whose reverse-polarity fault limits
+# contradict each other — the 12 ohm motor sits between VIN and VOUT, so with VIN at -12 V
+# keeping VOUT >= -0.5 V forces ~11 W into it, but the supply may deliver only 10 mA.
+name: motor_driver_12v_1a
+description: Arduino pin switches a 12 V 1 A DC motor
+ground_net: GND
+power_input: {pos_net: VIN, neg_net: GND, v_min: 11.0, v_nom: 12.0, v_max: 12.6, source_resistance: 0.1}
+loads:
+  - {net: VOUT, ref_net: VIN, resistance: 12.0}
+stimuli:
+  - {net: CTRL, kind: dc, dc: 5.0, source_resistance: 50.0}
+transient: {stop: 20e-3, step: 10e-6, settle: 5e-3}
+acceptance:
+  - {type: dc_voltage, net: VOUT, min: 0.0, max: 0.5}
+  - {type: input_current, max: 1.5}
+protection: [reverse_polarity, overcurrent]
+faults:
+  - name: reverse_12v
+    kind: reverse_polarity
+    voltage: 12
+    expect:
+      nets:
+        VOUT: {min: -0.5, max: 13}
+      max_input_current: 0.01
+      abs_max_ratings: true

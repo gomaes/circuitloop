@@ -180,7 +180,7 @@ class Orchestrator:
             run_dir=str(run_dir),
             spec=str(self.spec_path),
             project=str(self.project),
-            agent=self.agent.name,
+            agent=self.agent.label,
             started=datetime.now().isoformat(timespec="seconds"),
         )
         self.state.save()
@@ -202,6 +202,7 @@ class Orchestrator:
                 self._carry_over(*carry)
             elif start == "design":
                 self._new_run()
+                self._check_faults()
             else:
                 rd = run_dir or latest_run(self.project)
                 if rd is None:
@@ -210,7 +211,7 @@ class Orchestrator:
                 self.state = RunState.load(self.run_dir)
                 self.state.status, self.state.message = "running", f"resumed from {start}"
             self._protect()
-            self._log(f"[bold]circuitloop[/] run [cyan]{self.run_dir}[/] (agent: {self.agent.name})")
+            self._log(f"[bold]circuitloop[/] run [cyan]{self.run_dir}[/] (agent: {self.agent.label})")
             order = PHASES[PHASES.index(start) :]
             design_p1 = self._phase_design() if "design" in order else self._resume_design("design")
             if "harden" in order:
@@ -234,6 +235,23 @@ class Orchestrator:
             if hasattr(self, "state"):
                 self.state.finished = datetime.now().isoformat(timespec="seconds")
                 self.state.save()
+
+    def _check_faults(self) -> None:
+        """Contradictory fault expectations: no design can pass them, so say so before designing."""
+        from .consistency import fault_conflicts
+
+        conflicts = fault_conflicts(self.spec)
+        if not conflicts:
+            return
+        path = self.run_dir / "spec_infeasible.md"
+        path.write_text(
+            "# circuitloop: the fault expectations in the specification contradict each other\n\n"
+            "No design was attempted: the conditions below cannot all hold for any circuit, because the "
+            "simulation harness itself attaches the loads and applies the fault voltage.\n\n"
+            + "\n".join(f"- {c}" for c in conflicts)
+            + "\n\nChange spec.yaml as suggested (or let `cloop new` write it: it checks this) and run again.\n"
+        )
+        raise PipelineStop(EXIT_SPEC_INFEASIBLE, f"{conflicts[0]} (see {path})")
 
     def _carry_over(self, prev: Path, design: Path) -> None:
         old = RunState.load(prev)
@@ -523,7 +541,7 @@ class Orchestrator:
             refs["last_report.md"] = report.to_markdown()
         work = self._workspace(it, design, refs, design_readonly=False)
         label = "generate" if attempt == 0 else f"fix #{attempt}"
-        self._log(f"  \\[{it.name}] agent ({self.agent.name}) {role}: {label} ...")
+        self._log(f"  \\[{it.name}] agent ({self.agent.label}) {role}: {label} ...")
         task = self._task(role, instructions, work, ["design.py", "spec_issue.md"], it)
         res = self.agent.run(task)
         used = len(records(it / "agent" / "self_checks.json"))
@@ -604,7 +622,7 @@ class Orchestrator:
         it = self._iter_dir("harden", "reviewer")
         work = self._workspace(it, design, {}, design_readonly=True)
         instr = _tmpl("review.md", protection=", ".join(self.spec.protection) or "(none)")
-        self._log(f"  \\[{it.name}] agent ({self.agent.name}) reviewer ...")
+        self._log(f"  \\[{it.name}] agent ({self.agent.label}) reviewer ...")
         res = self.agent.run(self._task("reviewer", instr, work, ["review.md"], it))
         self._check_integrity(f"{it.name} (review)")
         rv = work / "review.md"
