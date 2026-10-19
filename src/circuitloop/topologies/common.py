@@ -248,6 +248,21 @@ def decoupling(w: DesignWriter, cx: Ctx, ref: str, pin_net: dict[int, str], v_wo
             place_cap(w, cx, c, a, b, v_work, f"{ref} {pin} decoupling (>= {fmt_si(d.min, 'F')})")
 
 
+def bring_out_interfaces(w: DesignWriter, cx: Ctx) -> None:
+    """Every load / stimulus net the spec attaches to must reach a connector pin (ERC rule
+    erc.interface_connector); add a 2-pin header (net / ground) for those a topology left inside."""
+    sp = cx.spec
+    nets = [ld.net for ld in sp.loads] + [s.net for s in sp.stimuli]
+    for net in dict.fromkeys(nets):
+        if net in (sp.power_input.pos_net, sp.ground_net) or net not in w.nets:
+            continue
+        if any(cx.db[w.key_of(ref)].kind == "connector" for ref, _ in w.nets[net]):
+            continue
+        j = connector(w, 2, f"{net} / {sp.ground_net} (load connection)", False)
+        w.connect(net, f"{j}.1")
+        w.connect(sp.ground_net, f"{j}.2")
+
+
 def connector(w: DesignWriter, pins: int, comment: str, power: bool) -> str:
     key = "TERM_2P_5.08" if power and pins == 2 else f"HDR_1x{pins:02d}"
     return w.add(key, comment=comment)

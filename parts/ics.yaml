@@ -83,10 +83,13 @@ LM358:
     type: subckt
     line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_LM358"
     models: |
-      .subckt CL_OPAMP INP INN OUT VCC GND params: aol=1e5 vohdrop=1.5 iq=0.35m
-      Bg a GND V = {aol}*(V(INP,GND)-V(INN,GND))
-      Rp a b 1k
-      Cp b GND 15.9u
+      .subckt CL_OPAMP INP INN OUT VCC GND params: aol=1e5 gbw=1meg sr=0.3meg vohdrop=1.5 iq=0.35m
+      * single pole (gain aol, bandwidth gbw), slew-rate limited; the internal node is held
+      * within the rails so it cannot wind up while the output is saturated (e.g. at power-up)
+      Bgi gi GND V = min(max({6.2832*gbw*1n}*V(INP,INN), {-sr*1n}), {sr*1n})
+      Bg GND b I = max(V(gi),0)*0.5*(1-tanh(50*(V(b,GND)-V(VCC,GND)))) + min(V(gi),0)*0.5*(1+tanh(50*V(b,GND)))
+      Cb b GND 1n
+      Rb b GND {aol/(6.2832*gbw*1n)}
       Bo o GND V = max(min(V(b,GND), V(VCC,GND)-{vohdrop}), 0.005)
       Vso o o2 0
       Ro o2 OUT 50
@@ -179,8 +182,8 @@ L78L05:
       vout: {value: 5.0, tolerance: 0.05}   # approx. datasheet output tolerance; check your part
 
 # ---------------------------------------------------------------- op-amps
-# CL_OPAMP2 (TL072, NE5532, MCP6002): single-pole op-amp (open-loop gain aol, pole fp -> GBW =
-# aol x fp) whose output swings from V- + voldrop to V+ - vohdrop. Slew rate, noise and input common-mode limits are
+# CL_OPAMP2 (TL072, NE5532, MCP6002): single-pole op-amp (open-loop gain aol, bandwidth gbw,
+# slew rate sr) whose output swings from V- + voldrop to V+ - vohdrop. Noise and input common-mode limits are
 # not modelled: respect the input range stated in the description.
 .dual_opamp_pins: &dual_opamp_pins
   1: {name: OUTA, type: output}
@@ -234,10 +237,13 @@ LM324:
     type: subckt
     line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} CL_LM324"
     models: |
-      .subckt CL_OPAMP INP INN OUT VCC GND params: aol=1e5 vohdrop=1.5 iq=0.35m
-      Bg a GND V = {aol}*(V(INP,GND)-V(INN,GND))
-      Rp a b 1k
-      Cp b GND 15.9u
+      .subckt CL_OPAMP INP INN OUT VCC GND params: aol=1e5 gbw=1meg sr=0.3meg vohdrop=1.5 iq=0.35m
+      * single pole (gain aol, bandwidth gbw), slew-rate limited; the internal node is held
+      * within the rails so it cannot wind up while the output is saturated (e.g. at power-up)
+      Bgi gi GND V = min(max({6.2832*gbw*1n}*V(INP,INN), {-sr*1n}), {sr*1n})
+      Bg GND b I = max(V(gi),0)*0.5*(1-tanh(50*(V(b,GND)-V(VCC,GND)))) + min(V(gi),0)*0.5*(1+tanh(50*V(b,GND)))
+      Cb b GND 1n
+      Rb b GND {aol/(6.2832*gbw*1n)}
       Bo o GND V = max(min(V(b,GND), V(VCC,GND)-{vohdrop}), 0.005)
       Vso o o2 0
       Ro o2 OUT 50
@@ -276,10 +282,12 @@ TL072:
     type: subckt
     line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_TL072"
     models: |
-      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 fp=10 vohdrop=1.5 voldrop=1.5 iq=1m
-      Bg a VEE V = {aol}*V(INP,INN)
-      Rp a b 1k
-      Cp b VEE {1/(6283.2*fp)}
+      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 gbw=1meg sr=1meg vohdrop=1.5 voldrop=1.5 iq=1m
+      * single pole (gain aol, bandwidth gbw), slew-rate limited, internal node held within the rails
+      Bgi gi VEE V = min(max({6.2832*gbw*1n}*V(INP,INN), {-sr*1n}), {sr*1n})
+      Bg VEE b I = max(V(gi,VEE),0)*0.5*(1-tanh(50*(V(b,VEE)-V(VCC,VEE)))) + min(V(gi,VEE),0)*0.5*(1+tanh(50*V(b,VEE)))
+      Cb b VEE 1n
+      Rb b VEE {aol/(6.2832*gbw*1n)}
       Bo o VEE V = max(min(V(b,VEE), V(VCC,VEE)-{vohdrop}), {voldrop})
       Vso o o2 0
       Ro o2 OUT 50
@@ -287,8 +295,8 @@ TL072:
       Rlk VCC VEE 1meg
       .ends CL_OPAMP2
       .subckt CL_TL072 OUTA INNA INPA VEE INPB INNB OUTB VCC
-      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=2e5 fp=15 vohdrop=1.5 voldrop=1.5 iq=1.4m
-      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=2e5 fp=15 vohdrop=1.5 voldrop=1.5 iq=1.4m
+      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=2e5 gbw=3meg sr=13meg vohdrop=1.5 voldrop=1.5 iq=1.4m
+      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=2e5 gbw=3meg sr=13meg vohdrop=1.5 voldrop=1.5 iq=1.4m
       .ends CL_TL072
     note: "single-pole model (3 MHz); input common-mode limit not modelled"
 
@@ -317,10 +325,12 @@ NE5532:
     type: subckt
     line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_NE5532"
     models: |
-      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 fp=10 vohdrop=1.5 voldrop=1.5 iq=1m
-      Bg a VEE V = {aol}*V(INP,INN)
-      Rp a b 1k
-      Cp b VEE {1/(6283.2*fp)}
+      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 gbw=1meg sr=1meg vohdrop=1.5 voldrop=1.5 iq=1m
+      * single pole (gain aol, bandwidth gbw), slew-rate limited, internal node held within the rails
+      Bgi gi VEE V = min(max({6.2832*gbw*1n}*V(INP,INN), {-sr*1n}), {sr*1n})
+      Bg VEE b I = max(V(gi,VEE),0)*0.5*(1-tanh(50*(V(b,VEE)-V(VCC,VEE)))) + min(V(gi,VEE),0)*0.5*(1+tanh(50*V(b,VEE)))
+      Cb b VEE 1n
+      Rb b VEE {aol/(6.2832*gbw*1n)}
       Bo o VEE V = max(min(V(b,VEE), V(VCC,VEE)-{vohdrop}), {voldrop})
       Vso o o2 0
       Ro o2 OUT 50
@@ -328,8 +338,8 @@ NE5532:
       Rlk VCC VEE 1meg
       .ends CL_OPAMP2
       .subckt CL_NE5532 OUTA INNA INPA VEE INPB INNB OUTB VCC
-      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=1e5 fp=100 vohdrop=2.0 voldrop=2.0 iq=4m
-      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=1e5 fp=100 vohdrop=2.0 voldrop=2.0 iq=4m
+      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=1e5 gbw=10meg sr=9meg vohdrop=2.0 voldrop=2.0 iq=4m
+      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=1e5 gbw=10meg sr=9meg vohdrop=2.0 voldrop=2.0 iq=4m
       .ends CL_NE5532
     note: "single-pole model (10 MHz); input common-mode limit not modelled"
 
@@ -356,10 +366,12 @@ MCP6002:
     type: subckt
     line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_MCP6002"
     models: |
-      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 fp=10 vohdrop=1.5 voldrop=1.5 iq=1m
-      Bg a VEE V = {aol}*V(INP,INN)
-      Rp a b 1k
-      Cp b VEE {1/(6283.2*fp)}
+      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 gbw=1meg sr=1meg vohdrop=1.5 voldrop=1.5 iq=1m
+      * single pole (gain aol, bandwidth gbw), slew-rate limited, internal node held within the rails
+      Bgi gi VEE V = min(max({6.2832*gbw*1n}*V(INP,INN), {-sr*1n}), {sr*1n})
+      Bg VEE b I = max(V(gi,VEE),0)*0.5*(1-tanh(50*(V(b,VEE)-V(VCC,VEE)))) + min(V(gi,VEE),0)*0.5*(1+tanh(50*V(b,VEE)))
+      Cb b VEE 1n
+      Rb b VEE {aol/(6.2832*gbw*1n)}
       Bo o VEE V = max(min(V(b,VEE), V(VCC,VEE)-{vohdrop}), {voldrop})
       Vso o o2 0
       Ro o2 OUT 50
@@ -367,8 +379,8 @@ MCP6002:
       Rlk VCC VEE 1meg
       .ends CL_OPAMP2
       .subckt CL_MCP6002 OUTA INNA INPA VEE INPB INNB OUTB VCC
-      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=1e5 fp=10 vohdrop=0.025 voldrop=0.025 iq=0.1m
-      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=1e5 fp=10 vohdrop=0.025 voldrop=0.025 iq=0.1m
+      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=1e5 gbw=1meg sr=0.6meg vohdrop=0.025 voldrop=0.025 iq=0.1m
+      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=1e5 gbw=1meg sr=0.6meg vohdrop=0.025 voldrop=0.025 iq=0.1m
       .ends CL_MCP6002
 
 # ------------------------------------------------------------ comparators

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 from ..partsdb import PartsDB
 from ..spec import Spec
-from .common import Ctx
+from .common import Ctx, bring_out_interfaces
 from .writer import DesignWriter, TopologyError
 
 __all__ = ["TOPOLOGIES", "Generated", "Param", "Topology", "TopologyError", "applicable", "generate"]
@@ -86,6 +86,7 @@ def generate(
     cx = Ctx(spec, db, params, protect)
     w = DesignWriter(db)
     title = top.build(w, cx)
+    bring_out_interfaces(w, cx)
     shown = {k: params.get(k, p.default) for k, p in top.params.items()}
     doc = [
         title,

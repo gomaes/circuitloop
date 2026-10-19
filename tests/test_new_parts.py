@@ -161,3 +161,44 @@ def test_tlc555_astable_and_lm393(tmp_path):
     f = _vnom(out, "frequency_OUT")
     assert f == pytest.approx(1 / (0.693 * (1e3 + 2 * 8.2e3) * 100e-9), rel=0.12)
     assert _vnom(out, "frequency_CMP") == pytest.approx(f, rel=0.02)
+
+
+def test_opamp_recovers_from_saturation_at_power_up(tmp_path):
+    """Regression (blind benchmark 2, C3): at power-up the bias network lets IN- rise faster than
+    IN+, so the output sits at ground for a few ms. The op-amp model's internal node used to wind
+    up meanwhile and the output stayed at ~0 V for >50 ms; it must settle to mid-rail."""
+    spec = {
+        "power_input": {"pos_net": "VIN", "v_min": 9.0, "v_nom": 9.0, "v_max": 9.0},
+        "stimuli": [
+            {"net": "IN", "kind": "sine", "amplitude": 0.002, "frequency": 1000, "source_resistance": 2200}
+        ],
+        "loads": [{"net": "OUT", "resistance": 10000}],
+        "transient": {"stop": 0.03, "step": 2e-6, "settle": 0.02},
+        "acceptance": [{"type": "dc_voltage", "net": "OUT", "min": 4.0, "max": 5.0}],
+    }
+    design = """
+    vin, gnd, inp, sig, ip, vref, out, fb = (Net(n) for n in ("VIN", "GND", "IN", "SIG", "INP", "VREF", "OUT", "FB"))
+    j1 = part("TERM_2P_5.08", ref="J1")
+    j2 = part("HDR_1x03", ref="J2")
+    u1 = part("LM358", ref="U1")
+    c1 = part("C_CER_50V", "100n", ref="C1")
+    c4 = part("C_FILM_PET_5PCT", "470n", ref="C4")
+    c3 = part("C_FILM_PET_5PCT", "10n", ref="C3")
+    r3 = part("R_1/4W", "1k", ref="R3")
+    r4 = part("R_1/4W", "100k", ref="R4")
+    r6 = part("R_1/4W", "4.7k", ref="R6")
+    r7 = part("R_1/4W", "4.7k", ref="R7")
+    r1 = part("R_1/4W", "200k", ref="R1")
+    r2 = part("R_1/4W", "1.8k", ref="R2")
+    vin += j1[1], u1["VCC"], c1[1], r6[1]
+    gnd += j1[2], u1["GND"], c1[2], c4[2], r7[2], u1["INPB"], j2[3]
+    inp += j2[1], r3[1]
+    sig += r3[2], c3[1]
+    ip += c3[2], r4[2], u1["INPA"]
+    vref += r6[2], r7[1], c4[1], r4[1], r2[2]
+    out += u1["OUTA"], r1[1], j2[2]
+    fb += r1[2], r2[1], u1["INNA"]
+    u1["INNB"] += u1["OUTB"]
+    """
+    out, errors = _verify(tmp_path, spec, design)
+    assert not errors, errors
