@@ -67,6 +67,11 @@ class AgentBackend(ABC):
         self.extra_args = list(extra_args or [])
         self.max_budget_usd = max_budget_usd
 
+    @property
+    def label(self) -> str:
+        """Backend and model as shown in logs and run state, e.g. ``claude:haiku``."""
+        return f"{self.name}:{self.model}" if self.model else self.name
+
     def available(self) -> bool:
         return self.executable is None or shutil.which(self.executable) is not None
 

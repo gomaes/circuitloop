@@ -103,6 +103,7 @@ From a one-line request — the agent writes `spec.yaml`, you confirm it, the pi
 
 ```bash
 cloop new "USB 5 V to 12 V boost converter"      # --yes: no confirmation, --no-run: spec only
+cloop new "USB 5 V to 12 V boost converter" --agent sonnet   # opus | sonnet | haiku | opencode
 ```
 
 The agent fills everything the request leaves open (supply tolerance, load, output window,
@@ -164,7 +165,10 @@ passed every gate (G1–G6, including fault injection) — open `layout.html` fo
 | `cloop doctor` | check Python, ngspice, agent CLIs; print install hints |
 | `cloop parts list [--kind K] [--json]` / `cloop parts add file.yaml [--user]` | manage the parts DB |
 
-Common options: `--agent claude|opencode`, `--max-iter N`, `--jobs N`, `--verbose`.
+Common options: `--agent` / `-a` (`opus`, `sonnet`, `haiku` = Claude Code with that model;
+`claude`, `opencode`, `claude:<model>`, `opencode:<provider/model>`), `--model` / `-m`,
+`--max-iter N`, `--jobs N`, `--verbose`. The choice overrides `cloop.toml`; `cloop new` writes it
+into the new project's `cloop.toml`.
 
 ### Parallel simulation
 
@@ -288,6 +292,16 @@ be met (e.g. no registered part can do it); it is quoted, marked as unverified, 
   run that already stopped with exit 4. Without `--relax`, `cloop run` only reports.
 - A relaxation that would move a limit by more than `loop.max_relax` (default 10 % of the window
   centre) is never applied automatically; at most `loop.relax_rounds` (2) relaxations per run.
+
+**Contradictory fault expectations** are caught before any design work. During a fault the
+harness applies the fault voltage, attaches every load as a resistor and keeps the stimuli
+connected; the board is passive, so the supply must deliver at least the power the loads are
+forced to dissipate by the fault's own net limits. When that needs more current than
+`max_input_current`, or a limit cannot hold at all (empty range, ground or the supply net outside
+it), `consistency.py` names the conflict and the smallest fix on each side — e.g. *"raise
+max_input_current to >= 0.91 A, or let VOUT go down to -10.3 V"* for a low-side motor switch
+whose motor sits between VIN and VOUT. `cloop new` feeds this back to the spec writer, `cloop spec
+check` reports it, and `cloop run` stops with exit 4 and `spec_infeasible.md` without designing.
 
 ### Custom ERC rules
 

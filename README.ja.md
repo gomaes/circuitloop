@@ -99,6 +99,7 @@ circuitloop をサービスとして提供する場合は、Anthropic の Commer
 
 ```bash
 cloop new "USB 5V→12V 昇圧回路を設計して"      # --yes で確認なし、--no-run で仕様の作成だけ
+cloop new "USB 5V→12V 昇圧回路を設計して" --agent sonnet   # opus | sonnet | haiku | opencode
 ```
 
 依頼に書かれていない項目（電源電圧の幅、負荷、出力電圧の範囲、リップル、保護、故障条件など）は、エージェントが一般的な設計値で埋め、1 つずつ `assumptions:` に書き出します。これは実行前に表示され、最終レポートにも載ります。仕様はスキーマと決定的な妥当性チェック（`cloop spec check`）に通ったときだけ採用されます。通らなければ問題点を返して書き直させます（最大 3 回）。確認後の仕様は手書きの仕様と同じく保護され、設計エージェントは変更できません。プロジェクトは `./<仕様名>/` に作られ、依頼文は `request.md`、仕様作成のログは `spec_gen/` に残ります。最終の公差解析で、合格範囲が登録部品の公差では満たせないと証明された場合、`cloop new` は検証済みの設計が合格する最小限だけ範囲を広げ、そのことを `assumptions` に記録して実行を完了します（`--no-relax` で報告のみ）。
@@ -154,7 +155,7 @@ ls output/
 | `cloop doctor` | Python、ngspice、エージェント CLI を確認し、不足があれば導入方法を表示する |
 | `cloop parts list [--kind K] [--json]` / `cloop parts add file.yaml [--user]` | 部品 DB を管理する |
 
-共通オプション: `--agent claude|opencode`、`--max-iter N`、`--jobs N`、`--verbose`
+共通オプション: `--agent` / `-a`（`opus`、`sonnet`、`haiku` は Claude Code をそのモデルで使う。ほかに `claude`、`opencode`、`claude:<モデル>`、`opencode:<プロバイダ/モデル>`）、`--model` / `-m`、`--max-iter N`、`--jobs N`、`--verbose`。指定は `cloop.toml` より優先し、`cloop new` は新しいプロジェクトの `cloop.toml` に書き込みます。
 
 ### シミュレーションの並列実行
 
@@ -253,6 +254,8 @@ G2 の独自ルールで検査する項目:
 - `cloop new` はこの緩和を自動で適用します（`--no-relax` で無効）。`spec.yaml` の該当する数値だけを書き換え（コメントは残す）、変更内容を `assumptions` に記録し、元のファイルを `spec_history/` に保存して、同じ設計のまま Phase 4 から続行します。緩和は範囲を広げるだけなので、Phase 1〜3 の結果はそのまま有効です。
 - 手書きの仕様では `cloop run --relax` で同じことができます。終了コード 4 で止まった直前の実行の提案を適用することもできます。`--relax` なしの `cloop run` は報告だけします。
 - 限界値を範囲中心の `loop.max_relax`（デフォルト 10%）より大きく動かす緩和は、自動では適用しません。1 回の実行で緩和するのは最大 `loop.relax_rounds`（2）回までです。
+
+**故障条件どうしの矛盾**は、設計を始める前に検出します。故障中のシミュレーションでは、ハーネスが故障電圧をかけ、すべての負荷を抵抗として接続し、入力信号もつないだままにします。基板は受動的なので、電源は「故障条件の端子電圧の制限によって負荷が強制的に消費する電力」以上を供給しなければなりません。それに必要な電流が `max_input_current` を超える場合や、制限そのものが成り立たない場合（範囲が空、GND や電源端子が範囲外）は、`consistency.py` が矛盾の内容と、両側それぞれの最小の修正案を示します。たとえばモーターが VIN と VOUT の間にあるローサイドスイッチなら「max_input_current を 0.91 A 以上にする、または VOUT を -10.3 V まで下がってよいことにする」です。`cloop new` はこれを仕様作成エージェントに返して書き直させ、`cloop spec check` は報告し、`cloop run` は設計を始めずに終了コード 4 と `spec_infeasible.md` で止まります。
 
 ### 独自 ERC ルール
 

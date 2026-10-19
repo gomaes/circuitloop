@@ -25,8 +25,22 @@ console = Console()
 err = Console(stderr=True)
 
 AgentOpt = Annotated[
-    str | None, typer.Option("--agent", help="Agent backend: claude | opencode", show_default=False)
+    str | None,
+    typer.Option(
+        "--agent",
+        "-a",
+        help="Agent: opus | sonnet | haiku (Claude Code with that model), claude, opencode, "
+        "claude:<model>, opencode:<provider/model>",
+        show_default=False,
+    ),
 ]
+ModelOpt = Annotated[
+    str | None,
+    typer.Option(
+        "--model", "-m", help="Model passed to the agent CLI (overrides cloop.toml)", show_default=False
+    ),
+]
+CLAUDE_MODELS = ("opus", "sonnet", "haiku")
 MaxIterOpt = Annotated[int | None, typer.Option("--max-iter", min=1, help="Fix attempts per phase")]
 VerboseOpt = Annotated[bool, typer.Option("--verbose", "-v", help="Verbose output")]
 JobsOpt = Annotated[
@@ -92,7 +106,11 @@ def doctor(agent: AgentOpt = None) -> None:
     from .config import load_config
     from .doctor import run_checks
 
-    backend = agent or load_config(Path.cwd()).agent.backend
+    try:
+        backend = parse_agent(agent)[0] or load_config(Path.cwd()).agent.backend
+    except ValueError as e:
+        err.print(f"[red]error:[/] {e}")
+        raise typer.Exit(EXIT_ENV_ERROR) from e
     checks = run_checks(backend)
     t = Table(title="cloop doctor")
     for col in ("check", "status", "detail", "how to fix"):
@@ -486,6 +504,7 @@ def new(
         ),
     ] = False,
     agent: AgentOpt = None,
+    model: ModelOpt = None,
     max_iter: MaxIterOpt = None,
     jobs: JobsOpt = None,
     verbose: VerboseOpt = False,
@@ -501,7 +520,7 @@ def new(
     from .specgen import generate_spec, summary
 
     cfg = load_config(Path.cwd())
-    _resolve_agent(cfg, agent)
+    _resolve_agent(cfg, agent, model)
     try:
         backend = make_backend(cfg.agent)
         db = load_db(None)
@@ -516,7 +535,7 @@ def new(
         raise typer.Exit(EXIT_ENV_ERROR)
     staging = Path.cwd() / ".cloop_new" / datetime.now().strftime("%Y%m%d-%H%M%S")
     staging.mkdir(parents=True)
-    console.print(f"[bold]circuitloop new[/]: writing the specification ({backend.name}) ...")
+    console.print(f"[bold]circuitloop new[/]: writing the specification ({backend.label}) ...")
     res = generate_spec(
         request, staging, backend, db, cfg.agent.timeout, log=lambda m: console.print(escape(m))
     )
@@ -564,7 +583,7 @@ def new(
             console.print(f"stopped; edit {dest / 'spec.yaml'} and run `cloop run` there")
             raise typer.Exit(EXIT_OK)
     pcfg = load_config(dest)
-    _resolve_agent(pcfg, agent)
+    _resolve_agent(pcfg, agent, model)
     if max_iter is not None:
         pcfg.loop.max_iter = max_iter
     if jobs is not None:
@@ -578,12 +597,42 @@ def new(
     raise typer.Exit(code)
 
 
-def _resolve_agent(cfg, agent: str | None) -> None:
+def parse_agent(agent: str | None, model: str | None = None) -> tuple[str | None, str | None]:
+    """--agent / --model -> (backend, model); None = keep the configured value.
+
+    opus | sonnet | haiku -> Claude Code with that model; claude:<model>, opencode:<provider/model>.
+    """
+    backend = None
     if agent is not None:
-        if agent not in ("claude", "opencode", "mock"):
-            err.print(f"[red]error:[/] --agent must be claude or opencode, got {agent!r}")
-            raise typer.Exit(EXIT_ENV_ERROR)
-        cfg.agent.backend = agent
+        name, _, sub = agent.partition(":")
+        if name in CLAUDE_MODELS and not sub:
+            backend, sub = "claude", name
+        elif name in ("claude", "opencode", "mock"):
+            backend = name
+        else:
+            raise ValueError(
+                f"--agent must be opus, sonnet, haiku, claude, opencode, claude:<model> or "
+                f"opencode:<provider/model>, got {agent!r}"
+            )
+        if sub:
+            if model is not None and model != sub:
+                raise ValueError(f"--agent {agent} and --model {model} name different models")
+            model = sub
+    return backend, model
+
+
+def _resolve_agent(cfg, agent: str | None, model: str | None = None) -> None:
+    try:
+        backend, model = parse_agent(agent, model)
+    except ValueError as e:
+        err.print(f"[red]error:[/] {e}")
+        raise typer.Exit(EXIT_ENV_ERROR) from e
+    if backend is not None and backend != cfg.agent.backend and model is None:
+        cfg.agent.model = None  # the configured model belongs to the other backend
+    if backend is not None:
+        cfg.agent.backend = backend
+    if model is not None:
+        cfg.agent.model = model
 
 
 @app.command()
@@ -605,6 +654,7 @@ def run(
         ),
     ] = False,
     agent: AgentOpt = None,
+    model: ModelOpt = None,
     max_iter: MaxIterOpt = None,
     jobs: JobsOpt = None,
     verbose: VerboseOpt = False,
@@ -618,7 +668,7 @@ def run(
         err.print(f"[red]error:[/] {spec} not found (create one with `cloop init`)")
         raise typer.Exit(EXIT_ENV_ERROR)
     cfg = load_config(spec.resolve().parent)
-    _resolve_agent(cfg, agent)
+    _resolve_agent(cfg, agent, model)
     if max_iter is not None:
         cfg.loop.max_iter = max_iter
     if jobs is not None:
