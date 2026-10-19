@@ -134,7 +134,7 @@ def place(
     refs = sorted(nl.components)
     pkgs = {}
     for r in refs:
-        pd = db.get(nl.components[r].part_key)
+        pd = db.resolve(nl.components[r].part_key, nl.components[r].value)
         if pd is None:
             raise LayoutError(f"{r}: not in parts DB")
         pkgs[r] = get_package(pd.package)

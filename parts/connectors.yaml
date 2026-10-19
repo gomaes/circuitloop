@@ -53,3 +53,51 @@ HDR_1x04:
   ratings:
     - {type: current, pin: 1, max: 3}
   spice: {type: connector}
+
+TERM_3P_5.08:
+  description: 3-pin screw terminal block, 5.08 mm pitch
+  kind: connector
+  package: term3_508
+  footprint: TerminalBlock:TerminalBlock_bornier-3_P5.08mm
+  mpn: "Screw terminal 3P 5.08mm"
+  pins:
+    1: {name: "1"}
+    2: {name: "2"}
+    3: {name: "3"}
+  ratings:
+    - {type: current, pin: 1, max: 10}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: {type: connector}
+
+HDR_1x05:
+  description: Pin header 1x05, 2.54 mm
+  kind: connector
+  package: hdr_1x5
+  footprint: Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical
+  mpn: "Pin header 1x05 2.54mm"
+  pins: {1: {name: "1"}, 2: {name: "2"}, 3: {name: "3"}, 4: {name: "4"}, 5: {name: "5"}}
+  ratings:
+    - {type: current, pin: 1, max: 3}
+  spice: {type: connector}
+
+HDR_1x06:
+  description: Pin header 1x06, 2.54 mm
+  kind: connector
+  package: hdr_1x6
+  footprint: Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical
+  mpn: "Pin header 1x06 2.54mm"
+  pins: {1: {name: "1"}, 2: {name: "2"}, 3: {name: "3"}, 4: {name: "4"}, 5: {name: "5"}, 6: {name: "6"}}
+  ratings:
+    - {type: current, pin: 1, max: 3}
+  spice: {type: connector}
+
+HDR_1x08:
+  description: Pin header 1x08, 2.54 mm
+  kind: connector
+  package: hdr_1x8
+  footprint: Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical
+  mpn: "Pin header 1x08 2.54mm"
+  pins: {1: {name: "1"}, 2: {name: "2"}, 3: {name: "3"}, 4: {name: "4"}, 5: {name: "5"}, 6: {name: "6"}, 7: {name: "7"}, 8: {name: "8"}}
+  ratings:
+    - {type: current, pin: 1, max: 3}
+  spice: {type: connector}

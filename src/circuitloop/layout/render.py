@@ -115,6 +115,8 @@ def _body(p: Placed, lay: Layout, kind: str, value: str) -> list[str]:
         a, b = _xy(pads[1], lay.cols, False), _xy(pads[2], lay.cols, False)
         cx, cy = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
         r = S * 0.95 if g == "led" else max(S * 0.98, math.dist(a, b) / 2 + S * 0.98)
+        if p.pkg.diameter_mm:
+            r = S * p.pkg.diameter_mm / 2.54 / 2
         cls = {"led": "led", "inductor": "ind"}.get(g, "ecap")
         out.append(f'<circle cx="{cx}" cy="{cy}" r="{r:.1f}" class="{cls}"/>')
         if kind in ("electrolytic", "led"):
@@ -149,7 +151,7 @@ def component_side_svg(lay: Layout, nl: Netlist, db: PartsDB, title: str) -> str
     order = sorted(lay.placed.values(), key=lambda p: p.pkg.height)
     for p in order:
         c = nl.components[p.ref]
-        pd = db.get(c.part_key)
+        pd = db.resolve(c.part_key, c.value)
         out += _body(p, lay, pd.kind if pd else "?", c.value)
     out.append("</svg>")
     return "\n".join(out)

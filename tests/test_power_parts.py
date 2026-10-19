@@ -86,7 +86,7 @@ def test_value_range_enforced():
     from circuitloop.partsdb import check_value
 
     db = load_db()
-    assert "above the range" in check_value(db["C_ELEC_16V"], "470u")
-    assert check_value(db["C_ELEC_16V"], "100u") is None
+    assert "above the range" in check_value(db["C_ELEC_16V"], "10m")
+    assert check_value(db["C_ELEC_16V"], "470u") is None  # larger can (sizes)
     assert "below the range" in check_value(db["C_ELEC_25V_D10"], "10u")
     assert check_value(db["C_ELEC_25V_D10"], "1000u") is None

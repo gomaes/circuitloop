@@ -58,7 +58,7 @@ def schematic_svg(nl: Netlist, db: PartsDB, title: str, ground: str = "GND") -> 
     blocks = []
     for ref in sorted(nl.components, key=_natural):
         c = nl.components[ref]
-        pd = db.get(c.part_key)
+        pd = db.resolve(c.part_key, c.value)
         pins = sorted(pd.pins.items()) if pd else []
         blocks.append((ref, c, pd, pins))
     cols = 4

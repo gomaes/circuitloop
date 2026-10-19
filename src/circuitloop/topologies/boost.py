@@ -118,7 +118,7 @@ class MC34063Boost(Topology):
         lval = ceil_to(2 * lmin, E6)
         ind = choose(
             [p for p in cx.of_kind("inductor") if value_fits(p, lval)],
-            lambda p: check_current(p, cx, peak=ilim * 1.05, rms=i_in * 1.1),
+            lambda p: check_current(p.for_value(lval), cx, peak=ilim * 1.05, rms=i_in * 1.1),
             f"inductor ({fmt_value(lval)}, {ilim:.2f} A peak)",
             key=lambda p: rating_max(p, "current") or 0,
         )
@@ -138,18 +138,43 @@ class MC34063Boost(Topology):
         )
         # ---- output capacitors
         co_min = 9 * iout * ton / vripple
+
+        def n_ok(n: int) -> bool:
+            return n <= 6
+
+        def size_bank(p):
+            """(n, value, ESR) of a parallel bank of part p meeting Co and Ipk x ESR / n <= Vripple / 2."""
+            n = 1
+            for _ in range(8):
+                c = ceil_to(max(2 * co_min / n, 100e-6), E6)
+                c = min(max(c, p.value_min or c), p.value_max or c)
+                esr = p.for_value(c).design.get("esr")
+                if esr is None:
+                    return None
+                need = max(1, math.ceil(ilim * esr / (0.5 * vripple) - 1e-9))
+                if need <= n:
+                    return n, c, esr
+                n = need
+            return None
+
+        banks = {}
+        for p in cx.of_kind("electrolytic"):
+            bank = size_bank(p)
+            if bank is not None and n_ok(bank[0]):
+                banks[p.key] = bank
         esr_ok = choose(
-            [p for p in cx.of_kind("electrolytic") if "esr" in p.design],
-            lambda p: check_voltage(p, cx, crit.max * 1.05, None),
+            [p for p in cx.of_kind("electrolytic") if p.key in banks],
+            lambda p: (
+                check_voltage(p.for_value(banks[p.key][1]), cx, crit.max * 1.05, None)
+                or check_current(
+                    p.for_value(banks[p.key][1]), cx, rms=iout * math.sqrt(max(ratio, 0.1)) / banks[p.key][0]
+                )
+            ),
             "output capacitor",
-            key=lambda p: (p.design["esr"], rating_max(p, "voltage") or 0),
+            key=lambda p: (banks[p.key][0], banks[p.key][2], rating_max(p, "voltage") or 0),
         )
-        esr = esr_ok.design["esr"]
-        n_cap = max(1, math.ceil(ilim * esr / (0.5 * vripple) - 1e-9))
-        c_each = ceil_to(max(2 * co_min / n_cap, 100e-6), E6)
+        n_cap, c_each, esr = banks[esr_ok.key]
         i_ripple = iout * math.sqrt(max(ratio, 0.1)) / n_cap
-        if not value_fits(esr_ok, c_each):
-            c_each = esr_ok.value_max
         cx.note(
             f"Co >= 9 Iout ton / Vripple = {co_min * 1e6:.3g} uF; ESR: Ipk x ESR/n <= Vripple/2 -> n = {n_cap} x "
             f"{esr_ok.key} (ESR {esr:g} ohm) of {fmt_value(c_each)}F"
@@ -189,7 +214,7 @@ class MC34063Boost(Topology):
             place_cap(
                 w, cx, c_each, crit.net, gnd, crit.max * 1.05,
                 "output capacitor" + (f" {k + 1}/{n_cap} (parallel: ESR / n)" if n_cap > 1 else ""),
-                kinds=("electrolytic",), prefer="low_esr", i_rms=i_ripple,
+                kinds=("electrolytic",), prefer="low_esr", i_rms=i_ripple, keys=(esr_ok.key,),
             )  # fmt: skip
         place_cap(w, cx, 100e-9, crit.net, gnd, crit.max * 1.05, "output HF decoupling")
         w.connect(crit.net, f"{dr}.K")

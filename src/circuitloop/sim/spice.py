@@ -68,7 +68,7 @@ def build_deck(nl: Netlist, db: PartsDB, spec: Spec, sc: Scenario) -> Deck:
     body: list[str] = []
     for ref in sorted(nl.components):
         c = nl.components[ref]
-        pd = db.get(c.part_key)
+        pd = db.resolve(c.part_key, c.value)
         if pd is None or pd.spice is None:
             deck.missing_model.append(ref)
             continue
@@ -93,9 +93,11 @@ def build_deck(nl: Netlist, db: PartsDB, spec: Spec, sc: Scenario) -> Deck:
             if key.startswith("p:"):
                 name = key[2:]
                 return _fmt(pd.spice.params[name].value * sc.perturb.get((ref, name), 1.0))
+            if key.startswith("d:"):  # datasheet figure (may depend on the value, see PartDef.sizes)
+                return _fmt(pd.design[key[2:]])
             return pin_node(ref, key)
 
-        body.append(re.sub(r"\{(ref|value|\d+|p:\w+)\}", sub, pd.spice.line or ""))
+        body.append(re.sub(r"\{(ref|value|\d+|[pd]:\w+)\}", sub, pd.spice.line or ""))
         for num in sorted(pd.pins):
             net = nl.net_of(ref, num)
             outer = deck.node_of_net[net] if net is not None else f"nc_{ref.lower()}_{num}"

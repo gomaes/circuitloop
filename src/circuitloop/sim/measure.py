@@ -190,7 +190,8 @@ def check_ratings(
 ) -> list[RatingCheck]:
     out: list[RatingCheck] = []
     for ref in refs:
-        pd = db[nl.components[ref].part_key]
+        c = nl.components[ref]
+        pd = db.resolve(c.part_key, c.value)
         for r in pd.ratings:
             rc = _check_one(ref, pd, r, wf, factors)
             if rc is not None:

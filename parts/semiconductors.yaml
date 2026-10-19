@@ -185,3 +185,590 @@ LED_GREEN_5MM:
     type: primitive
     line: "Q{ref} {3} {2} {1} CL_Q2N3906"
     models: ".model CL_Q2N3906 PNP(IS=1.4e-14 BF=180 VAF=18 IKF=0.08 ISE=1.4e-14 NE=1.5 BR=4 RB=10 RC=2.5 CJE=4.5e-12 CJC=4.5e-12 TF=5e-10 TR=3e-8)"
+
+# ------------------------------------------------------------ more rectifiers
+.diode_pins: &diode_pins
+  1: {name: A}
+  2: {name: K}
+
+1N5817:
+  description: 1 A / 20 V Schottky rectifier, low Vf, DO-41 (pin 1 = anode)
+  kind: diode
+  package: axial_400
+  footprint: Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal
+  mpn: 1N5817
+  design: {vf: 0.38}
+  pins: *diode_pins
+  ratings:
+    - {type: current, pin: 1, max: 1.0, mode: average}
+    - {type: current, pin: 1, max: 25}
+    - {type: voltage, pins: [2, 1], max: 20, min: -2}
+    - {type: power, max: 1.0}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_D1N5817"
+    models: ".model CL_D1N5817 D(IS=3e-5 N=1.0 RS=0.035 BV=20 IBV=1e-3 CJO=1.1e-10)"
+
+1N5818:
+  description: 1 A / 30 V Schottky rectifier, DO-41 (pin 1 = anode)
+  kind: diode
+  package: axial_400
+  footprint: Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal
+  mpn: 1N5818
+  design: {vf: 0.42}
+  pins: *diode_pins
+  ratings:
+    - {type: current, pin: 1, max: 1.0, mode: average}
+    - {type: current, pin: 1, max: 25}
+    - {type: voltage, pins: [2, 1], max: 30, min: -2}
+    - {type: power, max: 1.0}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_D1N5818"
+    models: ".model CL_D1N5818 D(IS=2e-5 N=1.03 RS=0.038 BV=30 IBV=1e-3 CJO=1.1e-10)"
+
+UF4007:
+  description: 1 A / 1000 V ultrafast rectifier (trr 75 ns) for switching circuits, DO-41 (pin 1 = anode)
+  kind: diode
+  package: axial_400
+  footprint: Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal
+  mpn: UF4007
+  design: {vf: 1.3}
+  pins: *diode_pins
+  ratings:
+    - {type: current, pin: 1, max: 1.0, mode: average}
+    - {type: current, pin: 1, max: 30}
+    - {type: voltage, pins: [2, 1], max: 1000, min: -2}
+    - {type: power, max: 1.5}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DUF4007"
+    models: ".model CL_DUF4007 D(IS=1e-8 N=2.5 RS=0.1 BV=1000 IBV=5e-6 CJO=1.7e-11 TT=5e-8)"
+
+BAT43:
+  description: Small-signal Schottky diode 30 V / 200 mA, Vf ~0.33 V at 2 mA, DO-35 (pin 1 = anode)
+  kind: diode
+  package: axial_300
+  footprint: Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal
+  mpn: BAT43
+  design: {vf: 0.4}
+  pins: *diode_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.2}
+    - {type: voltage, pins: [2, 1], max: 30, min: -2}
+    - {type: power, max: 0.2}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DBAT43"
+    models: ".model CL_DBAT43 D(IS=1e-7 N=1.2 RS=2 BV=30 IBV=1e-5 CJO=7e-12)"
+
+GBU406:
+  description: >-
+    Bridge rectifier 4 A (with heatsink; ~3 A free air) / 600 V, inline GBU package,
+    pins + ~ ~ - (1=POS 2=AC1 3=AC2 4=NEG)
+  kind: bridge
+  package: bridge_gbu
+  footprint: Diode_THT:Diode_Bridge_Vishay_GBU
+  mpn: GBU406
+  design: {vf: 0.9}
+  pins:
+    1: {name: POS, type: power_out}
+    2: {name: AC1}
+    3: {name: AC2}
+    4: {name: NEG, type: power_out}
+  ratings:
+    - {type: current, pin: 1, max: 3.0, mode: average}
+    - {type: current, pin: 1, max: 150}
+    - {type: voltage, pins: [1, 4], max: 600, min: -1}
+    - {type: power, max: 4.0}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} CL_GBU406"
+    models: |
+      .subckt CL_GBU406 POS AC1 AC2 NEG
+      D1 AC1 POS CL_DGBU
+      D2 AC2 POS CL_DGBU
+      D3 NEG AC1 CL_DGBU
+      D4 NEG AC2 CL_DGBU
+      .model CL_DGBU D(IS=1e-8 N=1.8 RS=0.02 BV=600 IBV=5e-6 CJO=6e-11 TT=5e-6)
+      .ends CL_GBU406
+
+# -------------------------------------------- Zener and TVS diode families
+# The value is the Zener (breakdown) voltage in volts, e.g. part("ZENER_1W", "5.1"); the
+# +/-5 % tolerance applies to it. Available in E24 steps (1N47xxA: 3.3-100 V, BZX55C: 2.4-75 V).
+ZENER_1W:
+  description: Zener diode 1 W (1N47xxA series), value = Zener voltage in V, +/-5 %, DO-41 (pin 1 = anode)
+  kind: zener
+  package: axial_400
+  footprint: Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal
+  mpn: "Zener 1W {value}V (1N47xxA)"
+  value: required
+  value_min: 3.3
+  value_max: 100
+  tolerance: 0.05
+  design: {rz: 2.0, ibv: 0.01}
+  pins: *diode_pins
+  ratings:
+    - {type: power, max: 1.0}
+  spice:
+    type: primitive
+    line: |-
+      D{ref} {1} {2} CLZ_{ref}
+      .model CLZ_{ref} D(IS=1e-11 N=1.3 RS={d:rz} BV={value} IBV={d:ibv} CJO=1e-10)
+
+ZENER_0.5W:
+  description: Zener diode 0.5 W (BZX55C series), value = Zener voltage in V, +/-5 %, DO-35 (pin 1 = anode)
+  kind: zener
+  package: axial_300
+  footprint: Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal
+  mpn: "Zener 0.5W {value}V (BZX55C)"
+  value: required
+  value_min: 2.4
+  value_max: 75
+  tolerance: 0.05
+  design: {rz: 8.0, ibv: 0.005}
+  pins: *diode_pins
+  ratings:
+    - {type: power, max: 0.5}
+  spice:
+    type: primitive
+    line: |-
+      D{ref} {1} {2} CLZ_{ref}
+      .model CLZ_{ref} D(IS=1e-12 N=1.3 RS={d:rz} BV={value} IBV={d:ibv} CJO=5e-11)
+
+TVS_P6KE:
+  description: >-
+    600 W unidirectional TVS diode (P6KExxA), value = breakdown voltage in V (6.8-440, +/-5 %);
+    stand-off voltage ~0.85 x value, DO-15 (pin 1 = anode)
+  kind: tvs
+  package: axial_500
+  footprint: Diode_THT:D_DO-15_P12.70mm_Horizontal
+  mpn: "P6KE{value}A"
+  value: required
+  value_min: 6.8
+  value_max: 440
+  tolerance: 0.05
+  pins: *diode_pins
+  ratings:
+    - {type: power, max: 5.0}
+  spice:
+    type: primitive
+    line: |-
+      D{ref} {1} {2} CLT_{ref}
+      .model CLT_{ref} D(IS=1e-10 N=1.5 RS=0.2 BV={value} IBV=1e-3 CJO=3e-9)
+
+TVS_1.5KE:
+  description: >-
+    1500 W unidirectional TVS diode (1.5KExxA), value = breakdown voltage in V (6.8-440, +/-5 %);
+    stand-off voltage ~0.85 x value, DO-201 (pin 1 = anode)
+  kind: tvs
+  package: axial_600
+  footprint: Diode_THT:D_DO-201_P15.24mm_Horizontal
+  mpn: "1.5KE{value}A"
+  value: required
+  value_min: 6.8
+  value_max: 440
+  tolerance: 0.05
+  pins: *diode_pins
+  ratings:
+    - {type: power, max: 6.5}
+  spice:
+    type: primitive
+    line: |-
+      D{ref} {1} {2} CLT_{ref}
+      .model CLT_{ref} D(IS=3e-10 N=1.5 RS=0.08 BV={value} IBV=1e-3 CJO=8e-9)
+
+# ------------------------------------------------------------------- LEDs
+.led_pins: &led_pins
+  1: {name: A}
+  2: {name: K}
+
+LED_YELLOW_5MM:
+  description: 5 mm yellow LED, Vf ~2.0 V @ 10 mA (pin 1 = anode)
+  kind: led
+  package: led_5mm
+  footprint: LED_THT:LED_D5.0mm
+  mpn: "LED 5mm yellow diffused"
+  design: {vf: 2.0}
+  pins: *led_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.025}
+    - {type: voltage, pins: [2, 1], max: 5, min: -3.5}
+    - {type: power, max: 0.075}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DLEDYEL"
+    models: ".model CL_DLEDYEL D(IS=6e-21 N=1.8 RS=5 BV=5 IBV=1e-5 CJO=4e-11)"
+
+LED_BLUE_5MM:
+  description: 5 mm blue LED, Vf ~3.0 V @ 10 mA (pin 1 = anode)
+  kind: led
+  package: led_5mm
+  footprint: LED_THT:LED_D5.0mm
+  mpn: "LED 5mm blue"
+  design: {vf: 3.0}
+  pins: *led_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.03}
+    - {type: voltage, pins: [2, 1], max: 5, min: -4.5}
+    - {type: power, max: 0.12}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DLEDBLU"
+    models: ".model CL_DLEDBLU D(IS=4e-27 N=2.0 RS=10 BV=5 IBV=1e-5 CJO=4e-11)"
+
+LED_WHITE_5MM:
+  description: 5 mm white LED, Vf ~3.0 V @ 10 mA (pin 1 = anode)
+  kind: led
+  package: led_5mm
+  footprint: LED_THT:LED_D5.0mm
+  mpn: "LED 5mm white"
+  design: {vf: 3.0}
+  pins: *led_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.03}
+    - {type: voltage, pins: [2, 1], max: 5, min: -4.5}
+    - {type: power, max: 0.12}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DLEDWHT"
+    models: ".model CL_DLEDWHT D(IS=4e-27 N=2.0 RS=10 BV=5 IBV=1e-5 CJO=4e-11)"
+
+LED_RED_3MM:
+  description: 3 mm red LED, Vf ~1.9 V @ 10 mA (pin 1 = anode)
+  kind: led
+  package: led_3mm
+  footprint: LED_THT:LED_D3.0mm
+  mpn: "LED 3mm red diffused"
+  design: {vf: 1.9}
+  pins: *led_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.02}
+    - {type: voltage, pins: [2, 1], max: 5, min: -3}
+    - {type: power, max: 0.06}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DLEDRED"
+    models: ".model CL_DLEDRED D(IS=1e-19 N=1.8 RS=5 BV=5 IBV=1e-5 CJO=4e-11)"
+
+LED_GREEN_3MM:
+  description: 3 mm green LED, Vf ~2.1 V @ 10 mA (pin 1 = anode)
+  kind: led
+  package: led_3mm
+  footprint: LED_THT:LED_D3.0mm
+  mpn: "LED 3mm green diffused"
+  design: {vf: 2.1}
+  pins: *led_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.02}
+    - {type: voltage, pins: [2, 1], max: 5, min: -3.5}
+    - {type: power, max: 0.06}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DLEDGRN"
+    models: ".model CL_DLEDGRN D(IS=1e-21 N=1.9 RS=5 BV=5 IBV=1e-5 CJO=4e-11)"
+
+LED_YELLOW_3MM:
+  description: 3 mm yellow LED, Vf ~2.0 V @ 10 mA (pin 1 = anode)
+  kind: led
+  package: led_3mm
+  footprint: LED_THT:LED_D3.0mm
+  mpn: "LED 3mm yellow diffused"
+  design: {vf: 2.0}
+  pins: *led_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.02}
+    - {type: voltage, pins: [2, 1], max: 5, min: -3.5}
+    - {type: power, max: 0.06}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DLEDYEL"
+    models: ".model CL_DLEDYEL D(IS=6e-21 N=1.8 RS=5 BV=5 IBV=1e-5 CJO=4e-11)"
+
+# ------------------------------------------------------- bipolar transistors
+# Power figures are free-air (no heatsink), as on a perfboard.
+.ebc: &ebc
+  1: {name: E}
+  2: {name: B}
+  3: {name: C}
+.cbe: &cbe
+  1: {name: C}
+  2: {name: B}
+  3: {name: E}
+.ecb: &ecb
+  1: {name: E}
+  2: {name: C}
+  3: {name: B}
+.bce: &bce
+  1: {name: B}
+  2: {name: C}
+  3: {name: E}
+
+BC547B:
+  description: NPN small-signal transistor 45 V / 100 mA, hFE 200-450, TO-92 (1=C 2=B 3=E)
+  kind: transistor
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: BC547B
+  pins: *cbe
+  ratings:
+    - {type: voltage, pins: [1, 3], max: 45, min: -0.5}
+    - {type: voltage, pins: [2, 3], max: 6, min: -6}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.5}
+  spice:
+    type: primitive
+    line: "Q{ref} {1} {2} {3} CL_QBC547B"
+    models: ".model CL_QBC547B NPN(IS=2.39e-14 NF=1.008 ISE=3.545e-15 NE=1.541 BF=294.3 IKF=0.1357 VAF=63.2 NR=1.004 ISC=6.272e-14 NC=1.243 BR=7.946 IKR=0.1144 VAR=25.9 RB=1 RE=0.4683 RC=0.85 CJE=1.358e-11 VJE=0.65 MJE=0.3279 TF=4.391e-10 XTF=120 VTF=2.643 ITF=0.7495 CJC=3.728e-12 VJC=0.3997 MJC=0.2955 XCJC=0.6193 TR=1e-8 FC=0.9579)"
+
+BC557B:
+  description: PNP small-signal transistor 45 V / 100 mA, hFE 200-450, TO-92 (1=C 2=B 3=E)
+  kind: transistor
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: BC557B
+  pins: *cbe
+  ratings:
+    - {type: voltage, pins: [3, 1], max: 45, min: -0.5}
+    - {type: voltage, pins: [3, 2], max: 5, min: -5}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.5}
+  spice:
+    type: primitive
+    line: "Q{ref} {1} {2} {3} CL_QBC557B"
+    models: ".model CL_QBC557B PNP(IS=3.834e-14 NF=1.008 ISE=1.219e-15 NE=1.528 BF=344.4 IKF=0.08039 VAF=21.11 NR=1.005 ISC=2.85e-13 NC=1.28 BR=14.84 IKR=0.047 VAR=32.02 RB=1 RE=0.6202 RC=0.5713 CJE=1.23e-11 VJE=0.6106 MJE=0.378 TF=5.4e-10 CJC=1.4e-11 VJC=0.1022 MJC=0.3563 TR=1e-8 FC=0.8027)"
+
+PN2222A:
+  description: NPN general-purpose transistor 40 V / 600 mA (TO-92 2N2222A), TO-92 (1=E 2=B 3=C)
+  kind: transistor
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: PN2222A
+  pins: *ebc
+  ratings:
+    - {type: voltage, pins: [3, 1], max: 40, min: -0.5}
+    - {type: voltage, pins: [2, 1], max: 6, min: -6}
+    - {type: current, pin: 3, max: 0.6}
+    - {type: power, max: 0.625}
+  spice:
+    type: primitive
+    line: "Q{ref} {3} {2} {1} CL_QPN2222A"
+    models: ".model CL_QPN2222A NPN(IS=14.34e-15 XTI=3 EG=1.11 VAF=74.03 BF=255.9 NE=1.307 ISE=14.34e-15 IKF=0.2847 XTB=1.5 BR=6.092 NC=2 ISC=0 IKR=0 RC=1 CJC=7.306e-12 MJC=0.3416 VJC=0.75 FC=0.5 CJE=22.01e-12 MJE=0.377 VJE=0.75 TR=46.91e-9 TF=411.1e-12 ITF=0.6 VTF=1.7 XTF=3 RB=10)"
+
+PN2907A:
+  description: PNP general-purpose transistor 60 V / 600 mA (TO-92 2N2907A), TO-92 (1=E 2=B 3=C)
+  kind: transistor
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: PN2907A
+  pins: *ebc
+  ratings:
+    - {type: voltage, pins: [1, 3], max: 60, min: -0.5}
+    - {type: voltage, pins: [1, 2], max: 5, min: -5}
+    - {type: current, pin: 3, max: 0.6}
+    - {type: power, max: 0.625}
+  spice:
+    type: primitive
+    line: "Q{ref} {3} {2} {1} CL_QPN2907A"
+    models: ".model CL_QPN2907A PNP(IS=650.6e-18 ISE=54.81e-15 ISC=0 XTI=3 BF=231.7 BR=3.563 IKF=1.079 IKR=0 XTB=1.5 VAF=115.7 VAR=35 VJE=0.65 VJC=0.65 RE=0.15 RC=0.715 RB=10 CJE=19.82e-12 CJC=14.76e-12 TF=603.7e-12 TR=111.3e-9 NE=1.829 NC=2 MJE=0.3357 MJC=0.5383 XTF=1.7 VTF=1.7 ITF=0.65 FC=0.5)"
+
+BD139:
+  description: NPN medium-power transistor 80 V / 1.5 A, hFE 40-250, 1.25 W free air, TO-126 (1=E 2=C 3=B)
+  kind: transistor
+  package: to126v
+  footprint: Package_TO_SOT_THT:TO-126-3_Vertical
+  mpn: BD139
+  pins: *ecb
+  ratings:
+    - {type: voltage, pins: [2, 1], max: 80, min: -0.5}
+    - {type: voltage, pins: [3, 1], max: 5, min: -5}
+    - {type: current, pin: 2, max: 1.5}
+    - {type: power, max: 1.25}
+  spice:
+    type: primitive
+    line: "Q{ref} {2} {3} {1} CL_QBD139"
+    models: ".model CL_QBD139 NPN(IS=1.8e-13 BF=150 VAF=100 IKF=0.8 ISE=1e-13 NE=1.6 BR=5 RB=3 RC=0.1 RE=0.05 CJE=120e-12 CJC=40e-12 TF=5e-9 TR=2e-7)"
+
+BD140:
+  description: PNP medium-power transistor 80 V / 1.5 A, hFE 40-250, 1.25 W free air, TO-126 (1=E 2=C 3=B)
+  kind: transistor
+  package: to126v
+  footprint: Package_TO_SOT_THT:TO-126-3_Vertical
+  mpn: BD140
+  pins: *ecb
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 80, min: -0.5}
+    - {type: voltage, pins: [1, 3], max: 5, min: -5}
+    - {type: current, pin: 2, max: 1.5}
+    - {type: power, max: 1.25}
+  spice:
+    type: primitive
+    line: "Q{ref} {2} {3} {1} CL_QBD140"
+    models: ".model CL_QBD140 PNP(IS=1.8e-13 BF=150 VAF=100 IKF=0.8 ISE=1e-13 NE=1.6 BR=5 RB=3 RC=0.1 RE=0.05 CJE=150e-12 CJC=60e-12 TF=8e-9 TR=2e-7)"
+
+TIP31C:
+  description: NPN power transistor 100 V / 3 A, hFE 25-50 at 1 A, 2 W free air (40 W on a heatsink), TO-220 (1=B 2=C 3=E)
+  kind: transistor
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: TIP31C
+  pins: *bce
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 100, min: -0.5}
+    - {type: voltage, pins: [1, 3], max: 5, min: -5}
+    - {type: current, pin: 2, max: 3.0}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "Q{ref} {2} {1} {3} CL_QTIP31C"
+    models: ".model CL_QTIP31C NPN(IS=1e-12 BF=60 VAF=100 IKF=2.5 ISE=1e-12 NE=1.6 BR=5 RB=2 RC=0.05 RE=0.03 CJE=300e-12 CJC=100e-12 TF=2e-8 TR=4e-7)"
+
+TIP32C:
+  description: PNP power transistor 100 V / 3 A, hFE 25-50 at 1 A, 2 W free air (40 W on a heatsink), TO-220 (1=B 2=C 3=E)
+  kind: transistor
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: TIP32C
+  pins: *bce
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 100, min: -0.5}
+    - {type: voltage, pins: [3, 1], max: 5, min: -5}
+    - {type: current, pin: 2, max: 3.0}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "Q{ref} {2} {1} {3} CL_QTIP32C"
+    models: ".model CL_QTIP32C PNP(IS=1e-12 BF=60 VAF=100 IKF=2.5 ISE=1e-12 NE=1.6 BR=5 RB=2 RC=0.05 RE=0.03 CJE=400e-12 CJC=150e-12 TF=2.5e-8 TR=4e-7)"
+
+TIP41C:
+  description: NPN power transistor 100 V / 6 A, hFE 15-75 at 3 A, 2 W free air (65 W on a heatsink), TO-220 (1=B 2=C 3=E)
+  kind: transistor
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: TIP41C
+  pins: *bce
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 100, min: -0.5}
+    - {type: voltage, pins: [1, 3], max: 5, min: -5}
+    - {type: current, pin: 2, max: 6.0}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "Q{ref} {2} {1} {3} CL_QTIP41C"
+    models: ".model CL_QTIP41C NPN(IS=2e-12 BF=60 VAF=100 IKF=4 ISE=2e-12 NE=1.6 BR=5 RB=1.5 RC=0.03 RE=0.02 CJE=500e-12 CJC=150e-12 TF=2e-8 TR=5e-7)"
+
+TIP42C:
+  description: PNP power transistor 100 V / 6 A, hFE 15-75 at 3 A, 2 W free air (65 W on a heatsink), TO-220 (1=B 2=C 3=E)
+  kind: transistor
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: TIP42C
+  pins: *bce
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 100, min: -0.5}
+    - {type: voltage, pins: [3, 1], max: 5, min: -5}
+    - {type: current, pin: 2, max: 6.0}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "Q{ref} {2} {1} {3} CL_QTIP42C"
+    models: ".model CL_QTIP42C PNP(IS=2e-12 BF=60 VAF=100 IKF=4 ISE=2e-12 NE=1.6 BR=5 RB=1.5 RC=0.03 RE=0.02 CJE=600e-12 CJC=200e-12 TF=2.5e-8 TR=5e-7)"
+
+TIP120:
+  description: NPN Darlington power transistor 60 V / 5 A, hFE >= 1000, Vce(sat) ~2 V, 2 W free air, TO-220 (1=B 2=C 3=E)
+  kind: transistor
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: TIP120
+  pins: *bce
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 60, min: -0.5}
+    - {type: voltage, pins: [1, 3], max: 5, min: -5}
+    - {type: current, pin: 2, max: 5.0}
+    - {type: power, max: 2.0}
+  spice:
+    type: subckt
+    line: "X{ref} {2} {1} {3} CL_TIP120"
+    models: |
+      .subckt CL_TIP120 C B E
+      Q1 C B M CL_QTIP120A
+      Q2 C M E CL_QTIP120B
+      R1 B M 8k
+      R2 M E 120
+      D1 E C CL_DTIP120
+      .model CL_QTIP120A NPN(IS=1e-13 BF=80 VAF=100 IKF=0.5 RB=10 RC=0.5 CJE=50e-12 CJC=30e-12 TF=1e-8)
+      .model CL_QTIP120B NPN(IS=1e-12 BF=40 VAF=100 IKF=4 RB=2 RC=0.05 RE=0.02 CJE=300e-12 CJC=100e-12 TF=3e-8)
+      .model CL_DTIP120 D(IS=1e-12 N=1.5 RS=0.05 BV=80 CJO=1e-10)
+      .ends CL_TIP120
+
+TIP125:
+  description: PNP Darlington power transistor 60 V / 5 A, hFE >= 1000, Vce(sat) ~2 V, 2 W free air, TO-220 (1=B 2=C 3=E)
+  kind: transistor
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: TIP125
+  pins: *bce
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 60, min: -0.5}
+    - {type: voltage, pins: [3, 1], max: 5, min: -5}
+    - {type: current, pin: 2, max: 5.0}
+    - {type: power, max: 2.0}
+  spice:
+    type: subckt
+    line: "X{ref} {2} {1} {3} CL_TIP125"
+    models: |
+      .subckt CL_TIP125 C B E
+      Q1 C B M CL_QTIP125A
+      Q2 C M E CL_QTIP125B
+      R1 B M 8k
+      R2 M E 120
+      D1 C E CL_DTIP125
+      .model CL_QTIP125A PNP(IS=1e-13 BF=80 VAF=100 IKF=0.5 RB=10 RC=0.5 CJE=60e-12 CJC=40e-12 TF=1.2e-8)
+      .model CL_QTIP125B PNP(IS=1e-12 BF=40 VAF=100 IKF=4 RB=2 RC=0.05 RE=0.02 CJE=400e-12 CJC=150e-12 TF=3.5e-8)
+      .model CL_DTIP125 D(IS=1e-12 N=1.5 RS=0.05 BV=80 CJO=1e-10)
+      .ends CL_TIP125
+
+# ------------------------------------------------------ small-signal MOSFETs
+2N7000:
+  description: N-MOSFET 60 V / 200 mA, Vgs(th) 0.8-3 V, Rds(on) ~2 Ohm at 10 V / ~4 Ohm at 4.5 V, TO-92 (1=S 2=G 3=D)
+  kind: mosfet
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: 2N7000
+  design: {ciss: 2.0e-11, rds_on: 4.0, vgs_min: 4.5}
+  pins:
+    1: {name: S}
+    2: {name: G, type: input}
+    3: {name: D}
+  ratings:
+    - {type: voltage, pins: [3, 1], max: 60, min: -1.5}
+    - {type: voltage, pins: [2, 1], max: 20, min: -20}
+    - {type: current, pin: 3, max: 0.2, mode: rms}
+    - {type: current, pin: 3, max: 0.5}
+    - {type: power, max: 0.4}
+  spice:
+    type: primitive
+    line: "M{ref} {3} {2} {1} CL_M2N7000"
+    models: ".model CL_M2N7000 VDMOS(VTO=2.0 KP=0.125 RD=0.5 RS=0.3 RG=10 LAMBDA=0.01 CGDMAX=10p CGDMIN=2p CGS=20p IS=1e-14 RB=0.5 CJO=15p TT=20n)"
+
+BS170:
+  description: N-MOSFET 60 V / 500 mA, Vgs(th) 0.8-3 V, Rds(on) ~1.2 Ohm at 10 V, TO-92 (1=D 2=G 3=S)
+  kind: mosfet
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: BS170
+  design: {ciss: 4.0e-11, rds_on: 2.5, vgs_min: 4.5}
+  pins:
+    1: {name: D}
+    2: {name: G, type: input}
+    3: {name: S}
+  ratings:
+    - {type: voltage, pins: [1, 3], max: 60, min: -1.5}
+    - {type: voltage, pins: [2, 3], max: 20, min: -20}
+    - {type: current, pin: 1, max: 0.5, mode: rms}
+    - {type: current, pin: 1, max: 1.2}
+    - {type: power, max: 0.83}
+  spice:
+    type: primitive
+    line: "M{ref} {1} {2} {3} CL_MBS170"
+    models: ".model CL_MBS170 VDMOS(VTO=2.0 KP=0.2 RD=0.3 RS=0.2 RG=10 LAMBDA=0.01 CGDMAX=15p CGDMIN=3p CGS=35p IS=1e-14 RB=0.3 CJO=25p TT=20n)"

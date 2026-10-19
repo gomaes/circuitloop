@@ -53,11 +53,15 @@ def test_boost_sizing_follows_an920():
     gen = generate("mc34063_boost", _spec("usb_boost_12v"), load_db())
     parts = _parts(gen)
     keys = sorted(k for k, _ in parts.values())
-    assert keys.count("C_ELEC_25V_D10") == 3  # input bulk + 2 parallel output caps (ESR / 2)
     by_comment = {c: (k, v) for _, k, v, c in gen.parts}
+    out_caps = [k for c, (k, _) in by_comment.items() if c.startswith("output capacitor")]
+    note = next(n for n in gen.notes if "Ipk x ESR/n" in n)
+    assert out_caps and all(f"x {k} (ESR" in note for k in out_caps)  # sized with the part it places
+    assert f"n = {len(out_caps)} x" in note
     assert by_comment["boost inductor"] == ("L_POWER_3A", "47u")
     assert ("R_1W", "0.1") in parts.values()  # Rsc = 0.3 V / ~3 A
-    assert ("1N5822", None) in parts.values() and ("IRLZ44N", None) in parts.values()
+    rect = by_comment[next(c for c in by_comment if c.startswith("output rectifier"))][0]
+    assert load_db()[rect].design["vf"] < 0.5 and ("IRLZ44N", None) in parts.values()  # a Schottky
     assert by_comment["gate pull-down: turn-off path"] == ("R_1/4W", "220")
     assert "PTC_RXEF250" in keys  # spec asks for overcurrent protection
     assert any("Ipk = 2 Iout (ratio + 1)" in n for n in gen.notes)
@@ -75,7 +79,8 @@ def test_minimal_variant_has_no_protection():
 def test_555_and_opamp_values():
     db = load_db()
     p = _parts(generate("ne555_astable", _spec("ne555_blinker"), db))
-    assert ("C_FILM_100V", "1u") in p.values()  # film timing capacitor
+    timing = [(k, v) for k, v in p.values() if v == "1u" and "FILM" in k]
+    assert timing and db[timing[0][0]].tolerance <= 0.05  # tightest film timing capacitor
     assert ("R_1/4W", "680k") in p.values()
     p = _parts(generate("noninverting_amp", _spec("opamp_x10"), db))
     assert ("R_1/4W", "18k") in p.values() and ("R_1/4W", "2k") in p.values()  # G = 10 exactly

@@ -33,7 +33,7 @@ def build_guide(lay: Layout, nl: Netlist, db: PartsDB, title: str, ground: str) 
     step = 0
     for p in sorted(lay.placed.values(), key=lambda p: (p.pkg.height, p.ref)):
         c = nl.components[p.ref]
-        pd = db.get(c.part_key)
+        pd = db.resolve(c.part_key, c.value)
         step += 1
         pins = ", ".join(
             f"{pd.pins[n].name if pd else n}→{hole_name(cell)}" for n, cell in sorted(p.pads().items())

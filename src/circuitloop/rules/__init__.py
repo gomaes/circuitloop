@@ -47,7 +47,7 @@ class RuleContext:
     skidl_erc: list[tuple[str, str]] = field(default_factory=list)
 
     def pdef(self, c: Component) -> PartDef | None:
-        return self.db.get(c.part_key)
+        return self.db.resolve(c.part_key, c.value)
 
     def components_of_kind(self, *kinds: str) -> list[Component]:
         out = []

@@ -13,11 +13,24 @@ def render_catalog(db: PartsDB) -> str:
         'Only these parts may be used: `part("<KEY>", value, ref=...)`.',
         'Pins are listed as `number:NAME`; address them by name (`u1["VCC"]`) or number.',
         "Ratings are absolute maximums; the spec's derating factors apply in normal operation.",
+        "Pinouts follow the common datasheet; check the part you buy.",
         "",
+        "## Overview",
+        "",
+        "| key | kind | value range | tolerance | description |",
+        "|---|---|---|---|---|",
     ]
     by_kind: dict[str, list] = {}
     for k in db.keys():
         by_kind.setdefault(db[k].kind, []).append(db[k])
+    for kind in sorted(by_kind):
+        for p in by_kind[kind]:
+            rng = ""
+            if p.value == "required":
+                rng = f"{fmt_si(p.value_min) if p.value_min else ''}..{fmt_si(p.value_max) if p.value_max else ''}"
+            tol = f"±{p.tolerance * 100:g} %" if p.tolerance else ""
+            lines.append(f"| `{p.key}` | {kind} | {rng} | {tol} | {p.description.split(';')[0]} |")
+    lines.append("")
     for kind in sorted(by_kind):
         lines += [f"## {kind}", ""]
         for p in by_kind[kind]:
@@ -42,11 +55,25 @@ def render_catalog(db: PartsDB) -> str:
             if p.value == "required" and (p.value_min or p.value_max):
                 val += f" ({fmt_si(p.value_min or 0)}..{fmt_si(p.value_max) if p.value_max else 'any'})"
             if p.tolerance:
-                val += f", tolerance ±{p.tolerance:.0%}"
+                val += f", tolerance ±{p.tolerance * 100:g} %"
             lines.append(f"- package: {p.package}; value: {val}")
             if p.spice and p.spice.params:
                 prm = "; ".join(f"{n} = {v.value:g} ±{v.tolerance:.0%}" for n, v in p.spice.params.items())
                 lines.append(f"- model parameters (with tolerance): {prm}")
+            if p.sizes:
+                lo = p.value_min or 0
+                body = []
+                for z in p.sizes:
+                    extra = ", ".join(f"{k} {v:g}" for k, v in z.design.items())
+                    rat = "; ".join(
+                        f"|I| <= {fmt_si(r.max, 'A')}" + (f" {r.mode}" if r.mode != "peak" else "")
+                        for r in (z.ratings or [])
+                        if r.type == "current"
+                    )
+                    info = ", ".join(x for x in (z.package, extra, rat) if x)
+                    body.append(f"{fmt_si(lo)}..{fmt_si(z.value_max)}: {info}")
+                    lo = z.value_max
+                lines.append("- by value (body / datasheet figures / ratings): " + "; ".join(body))
             lines.append(f"- pins: {pins}")
             lines.append(f"- ratings: {'; '.join(rat)}")
             if p.decoupling:

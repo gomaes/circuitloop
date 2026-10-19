@@ -62,7 +62,7 @@ def part(key: str, value: str | float | None = None, ref: str | None = None) -> 
         name=key,
         ref_prefix=REF_PREFIX[pd.kind],
         value=val if val is not None else key,
-        footprint=pd.footprint,
+        footprint=pd.for_value(val).footprint,
         pins=[Pin(num=n, name=pdef.name, func=_PIN_FUNC[pdef.type]) for n, pdef in pd.pins.items()],
         **kwargs,
     )

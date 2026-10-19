@@ -34,7 +34,7 @@ def bom_rows(nl: Netlist, db: PartsDB) -> list[dict]:
         groups.setdefault((c.part_key or "?", c.value), []).append(ref)
     rows = []
     for (key, value), refs in sorted(groups.items(), key=lambda kv: _natural(sorted(kv[1], key=_natural)[0])):
-        pd = db.get(key)
+        pd = db.resolve(key, value)
         refs = sorted(refs, key=_natural)
         rows.append(
             {

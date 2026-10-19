@@ -176,3 +176,662 @@ PTC_RXEF250:
     type: equivalent
     line: "R{ref} {1} {2} 0.07"
     note: "untripped state only (typ. ~0.07 ohm); trip behaviour is not simulated"
+
+# ------------------------------------------------- buck (step-down) regulators
+# CL_BUCK: circuitloop's behavioural model of the LM2596/LM2576/LM2575 family — fixed-frequency
+# peak-current-mode control (PI error amplifier, slope compensation, cycle-by-cycle limit `ilim`),
+# switch saturation ~ vsat + I/gsw, 1 ms soft start, ON/OFF (pin 5) active low. Fixed versions divide
+# FB internally (kfb = 1.23 V / Vout). Simulate with transient.step <= 1/(50 fsw) and settle >= 3 ms.
+.buck_models: &buck_models |
+  .subckt CL_BUCK VIN SW GND FB ON params: kfb=1 vref=1.23 fsw=150k ilim=4.5 vsat=0.8 gsw=8 dmax=0.98 iq=5m rfb=100meg kp=10 ki=2e4 sc=0.25
+  * clock: set pulse at each period start, forced-off window (max duty), ramp for slope compensation
+  Vset set GND PULSE(0 1 0 1n 1n 20n {1/fsw})
+  Vclk clk GND PULSE(0 1 {dmax/fsw} 1n 1n {(1-dmax)/fsw-3n} {1/fsw})
+  Vramp ramp GND PULSE(0 1 0 {1/fsw-2n} 1n 1n {1/fsw})
+  * error amplifier: PI on the (internally divided) feedback, 1 ms soft start, anti-windup integrator
+  Be e GND V = {vref}*min(1, time/1m) - {kfb}*V(FB,GND)
+  Bint GND xi I = {ki}*1u*(max(V(e),0)*0.5*(1-tanh(50*(V(xi)-{ilim}))) + min(V(e),0)*0.5*(1+tanh(50*V(xi))))
+  Cxi xi GND 1u
+  Bic ic GND V = max(min({kp}*V(e) + V(xi), {ilim}), 0)
+  * peak-current comparator (blanked for the first 3 % of the period) and set/reset latch
+  Bcmp cmp GND V = 0.5*(1+tanh(40*(i(Vsense) + {sc}*{ilim}*V(ramp) - V(ic))))
+  Br r GND V = min(V(clk) + (1-V(clk))*V(cmp)*0.5*(1+tanh(200*(V(ramp)-0.03))), 1)
+  Bc c GND V = V(set) - V(r)*(1-V(set))
+  Vone one GND 1
+  Sq one q c GND CL_SWBK
+  .model CL_SWBK SW(VT=0 VH=0.5 RON=1 ROFF=1e9)
+  Rq q GND 1k
+  Rm q qm 1k
+  Cm qm GND 10p
+  * enable: ON/OFF pin below 1.3 V and VIN above ~4.5 V
+  Ben en GND V = 0.5*(1-tanh(20*(V(ON,GND)-1.3)))*0.5*(1+tanh(10*(V(VIN,GND)-4.5)))
+  * power switch VIN -> SW, current measured by Vsense
+  Vsense VIN vi 0
+  Bsw vi SW I = V(qm)*V(en)*{gsw}*(max(V(vi,SW)-{vsat},0) + 0.05*ln(1+exp(-abs(V(vi,SW)-{vsat})/0.05)))
+  Rsw vi SW 100meg
+  Bsup VIN GND I = {iq}*0.5*(1+tanh(5*(V(VIN,GND)-2)))
+  Rfb FB GND {rfb}
+  Ron ON GND 1meg
+  .ends CL_BUCK
+.buck_pins: &buck_pins
+  1: {name: VIN, type: power_in}
+  2: {name: SW}
+  3: {name: GND, type: power_in}
+  4: {name: FB, type: input}
+  5: {name: "ON", type: input}
+.lm2596_common: &lm2596_common
+  kind: regulator
+  package: to220_5
+  footprint: Package_TO_SOT_THT:TO-220-5_P3.4x3.7mm_StaggerOdd_Lead3.8mm_Vertical
+  pins: *buck_pins
+  ratings:
+    - {type: voltage, pins: [1, 3], max: 45, min: -0.3}
+    - {type: voltage, pins: [5, 3], max: 25, min: -0.3}
+    - {type: voltage, pins: [4, 3], max: 25, min: -0.3}
+    - {type: current, pin: 2, max: 3.0, mode: rms}
+    - {type: power, max: 2.0}
+  decoupling:
+    - {pin: 1, gnd: 3, min: 1.0e-5}
+
+LM2596T-5.0:
+  <<: *lm2596_common
+  description: >-
+    5 V 3 A buck switching regulator, 150 kHz, input 7-40 V, FB to the output, ON (pin 5) to GND;
+    typ. 33 uH / 220 uF low-ESR, Schottky catch diode (1N5822), TO-220-5 (1=VIN 2=SW 3=GND 4=FB 5=ON)
+  mpn: LM2596T-5.0
+  design: {vout: 5.0, fsw: 150000, ilim: 4.5, vsat: 1.16, iq: 0.005}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} CL_BUCK params: vref={p:vref} kfb=0.246 rfb=10k fsw=150k ilim=4.5 vsat=0.8 gsw=8"
+    params: {vref: {value: 1.23, tolerance: 0.04}}
+    models: *buck_models
+    note: "behavioural current-mode model"
+
+LM2596T-3.3:
+  <<: *lm2596_common
+  description: >-
+    3.3 V 3 A buck switching regulator, 150 kHz, input 4.75-40 V, FB to the output, ON (pin 5) to GND;
+    typ. 33 uH / 220 uF low-ESR, Schottky catch diode (1N5822), TO-220-5 (1=VIN 2=SW 3=GND 4=FB 5=ON)
+  mpn: LM2596T-3.3
+  design: {vout: 3.3, fsw: 150000, ilim: 4.5, vsat: 1.16, iq: 0.005}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} CL_BUCK params: vref={p:vref} kfb=0.37273 rfb=10k fsw=150k ilim=4.5 vsat=0.8 gsw=8"
+    params: {vref: {value: 1.23, tolerance: 0.04}}
+    models: *buck_models
+    note: "behavioural current-mode model"
+
+LM2596T-12:
+  <<: *lm2596_common
+  description: >-
+    12 V 3 A buck switching regulator, 150 kHz, input 15-40 V, FB to the output, ON (pin 5) to GND;
+    typ. 68 uH / 220 uF low-ESR, Schottky catch diode (1N5822), TO-220-5 (1=VIN 2=SW 3=GND 4=FB 5=ON)
+  mpn: LM2596T-12
+  design: {vout: 12.0, fsw: 150000, ilim: 4.5, vsat: 1.16, iq: 0.005}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} CL_BUCK params: vref={p:vref} kfb=0.1025 rfb=10k fsw=150k ilim=4.5 vsat=0.8 gsw=8"
+    params: {vref: {value: 1.23, tolerance: 0.04}}
+    models: *buck_models
+    note: "behavioural current-mode model"
+
+LM2596T-ADJ:
+  <<: *lm2596_common
+  description: >-
+    Adjustable 1.23-37 V 3 A buck switching regulator, 150 kHz, input up to 40 V: Vout = 1.23 V x
+    (1 + R2/R1), R2 from the output to FB, R1 (1-5 kOhm) from FB to GND; ON (pin 5) to GND; Schottky
+    catch diode (1N5822), TO-220-5 (1=VIN 2=SW 3=GND 4=FB 5=ON)
+  mpn: LM2596T-ADJ
+  design: {vref: 1.23, fsw: 150000, ilim: 4.5, vsat: 1.16, iq: 0.005}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} CL_BUCK params: vref={p:vref} kfb=1 fsw=150k ilim=4.5 vsat=0.8 gsw=8"
+    params: {vref: {value: 1.23, tolerance: 0.02}}
+    models: *buck_models
+    note: "behavioural current-mode model"
+
+LM2576T-5.0:
+  <<: *lm2596_common
+  description: >-
+    5 V 3 A buck switching regulator, 52 kHz, input 7-40 V, FB to the output, ON (pin 5) to GND;
+    typ. 100 uH / 1000 uF low-ESR, Schottky catch diode (1N5822), TO-220-5 (1=VIN 2=SW 3=GND 4=FB 5=ON)
+  mpn: LM2576T-5.0
+  design: {vout: 5.0, fsw: 52000, ilim: 5.8, vsat: 1.4, iq: 0.005}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} CL_BUCK params: vref={p:vref} kfb=0.246 rfb=10k fsw=52k ilim=5.8 vsat=1.0 gsw=7.5"
+    params: {vref: {value: 1.23, tolerance: 0.04}}
+    models: *buck_models
+    note: "behavioural current-mode model"
+
+LM2576T-ADJ:
+  <<: *lm2596_common
+  description: >-
+    Adjustable 1.23-37 V 3 A buck switching regulator, 52 kHz, input up to 40 V: Vout = 1.23 V x
+    (1 + R2/R1), R2 from the output to FB, R1 (1-5 kOhm) from FB to GND; ON (pin 5) to GND; Schottky
+    catch diode (1N5822), TO-220-5 (1=VIN 2=SW 3=GND 4=FB 5=ON)
+  mpn: LM2576T-ADJ
+  design: {vref: 1.23, fsw: 52000, ilim: 5.8, vsat: 1.4, iq: 0.005}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} CL_BUCK params: vref={p:vref} kfb=1 fsw=52k ilim=5.8 vsat=1.0 gsw=7.5"
+    params: {vref: {value: 1.23, tolerance: 0.02}}
+    models: *buck_models
+    note: "behavioural current-mode model"
+
+LM2575T-5.0:
+  <<: *lm2596_common
+  description: >-
+    5 V 1 A buck switching regulator, 52 kHz, input 7-40 V, FB to the output, ON (pin 5) to GND;
+    typ. 330 uH / 330 uF, Schottky catch diode (1N5819), TO-220-5 (1=VIN 2=SW 3=GND 4=FB 5=ON)
+  mpn: LM2575T-5.0
+  design: {vout: 5.0, fsw: 52000, ilim: 2.2, vsat: 0.9, iq: 0.005}
+  ratings:
+    - {type: voltage, pins: [1, 3], max: 45, min: -0.3}
+    - {type: voltage, pins: [5, 3], max: 25, min: -0.3}
+    - {type: voltage, pins: [4, 3], max: 25, min: -0.3}
+    - {type: current, pin: 2, max: 1.0, mode: rms}
+    - {type: power, max: 2.0}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} CL_BUCK params: vref={p:vref} kfb=0.246 rfb=10k fsw=52k ilim=2.2 vsat=0.7 gsw=5"
+    params: {vref: {value: 1.23, tolerance: 0.04}}
+    models: *buck_models
+    note: "behavioural current-mode model"
+
+# -------------------------------------------------------------- power MOSFETs
+# VDMOS models fitted to typical Rds(on) / Vgs(th) / capacitance figures. Power is free-air.
+.mos_gds: &mos_gds
+  1: {name: G, type: input}
+  2: {name: D}
+  3: {name: S}
+
+IRFZ44N:
+  description: N-MOSFET 55 V / 49 A, Rds(on) ~17 mOhm at Vgs 10 V (standard gate, not logic level), TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRFZ44NPBF
+  design: {ciss: 1.5e-09, rds_on: 0.0175, vgs_min: 10.0}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 55, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 49, mode: rms}
+    - {type: current, pin: 2, max: 160}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRFZ44N"
+    models: ".model CL_IRFZ44N VDMOS(VTO=3.0 KP=17 RD=0.006 RS=0.003 RG=2 LAMBDA=0.01 CGDMAX=0.6n CGDMIN=0.05n CGS=1.4n IS=1e-12 RB=0.01 CJO=1n TT=60n)"
+
+IRF540N:
+  description: N-MOSFET 100 V / 33 A, Rds(on) ~44 mOhm at Vgs 10 V (standard gate), TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRF540NPBF
+  design: {ciss: 1.96e-09, rds_on: 0.044, vgs_min: 10.0}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 100, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 33, mode: rms}
+    - {type: current, pin: 2, max: 110}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRF540N"
+    models: ".model CL_IRF540N VDMOS(VTO=3.0 KP=6 RD=0.015 RS=0.005 RG=2 LAMBDA=0.01 CGDMAX=0.8n CGDMIN=0.05n CGS=1.8n IS=1e-12 RB=0.01 CJO=0.8n TT=100n)"
+
+IRF3205:
+  description: N-MOSFET 55 V / 110 A, Rds(on) ~8 mOhm at Vgs 10 V (standard gate), TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRF3205PBF
+  design: {ciss: 3.25e-09, rds_on: 0.008, vgs_min: 10.0}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 55, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 75, mode: rms}
+    - {type: current, pin: 2, max: 390}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRF3205"
+    models: ".model CL_IRF3205 VDMOS(VTO=3.0 KP=40 RD=0.003 RS=0.0015 RG=1.5 LAMBDA=0.01 CGDMAX=1.2n CGDMIN=0.1n CGS=3n IS=1e-12 RB=0.005 CJO=2n TT=70n)"
+
+IRLB8721:
+  description: Logic-level N-MOSFET 30 V / 62 A, Rds(on) ~9 mOhm at Vgs 4.5 V (fully on from 3.3 V logic at low current), TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRLB8721PBF
+  design: {ciss: 1.08e-09, rds_on: 0.0087, vgs_min: 4.5}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 30, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 62, mode: rms}
+    - {type: current, pin: 2, max: 250}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRLB8721"
+    models: ".model CL_IRLB8721 VDMOS(VTO=1.8 KP=79 RD=0.0025 RS=0.0015 RG=1 LAMBDA=0.01 CGDMAX=0.4n CGDMIN=0.04n CGS=1n IS=1e-12 RB=0.005 CJO=0.6n TT=30n)"
+
+FQP30N06L:
+  description: Logic-level N-MOSFET 60 V / 32 A, Rds(on) ~35 mOhm at Vgs 5 V, TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: FQP30N06L
+  design: {ciss: 1.04e-09, rds_on: 0.035, vgs_min: 5.0}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [2, 3], max: 60, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 32, mode: rms}
+    - {type: current, pin: 2, max: 128}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_FQP30N06L"
+    models: ".model CL_FQP30N06L VDMOS(VTO=1.7 KP=17 RD=0.012 RS=0.005 RG=2 LAMBDA=0.01 CGDMAX=0.4n CGDMIN=0.04n CGS=1n IS=1e-12 RB=0.01 CJO=0.5n TT=50n)"
+
+IRF9540N:
+  description: P-MOSFET -100 V / -23 A, Rds(on) ~117 mOhm at Vgs -10 V, TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRF9540NPBF
+  design: {ciss: 1.3e-09, rds_on: 0.117, vgs_min: -10.0}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 100, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 23, mode: rms}
+    - {type: current, pin: 2, max: 76}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRF9540N"
+    models: ".model CL_IRF9540N VDMOS(pchan VTO=-3.0 KP=1.9 RD=0.03 RS=0.01 RG=3 LAMBDA=0.01 CGDMAX=0.5n CGDMIN=0.05n CGS=1.2n IS=1e-12 RB=0.02 CJO=0.6n TT=100n)"
+
+IRF4905:
+  description: P-MOSFET -55 V / -74 A, Rds(on) ~20 mOhm at Vgs -10 V, TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRF4905PBF
+  design: {ciss: 3.4e-09, rds_on: 0.02, vgs_min: -10.0}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 55, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 74, mode: rms}
+    - {type: current, pin: 2, max: 260}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRF4905"
+    models: ".model CL_IRF4905 VDMOS(pchan VTO=-3.0 KP=13 RD=0.006 RS=0.003 RG=2 LAMBDA=0.01 CGDMAX=1.2n CGDMIN=0.1n CGS=3n IS=1e-12 RB=0.006 CJO=1.5n TT=80n)"
+
+IRF9Z34N:
+  description: P-MOSFET -55 V / -19 A, Rds(on) ~100 mOhm at Vgs -10 V, TO-220 (1=G 2=D 3=S)
+  kind: mosfet
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: IRF9Z34NPBF
+  design: {ciss: 6.2e-10, rds_on: 0.1, vgs_min: -10.0}
+  pins: *mos_gds
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 55, min: -1.5}
+    - {type: voltage, pins: [1, 3], max: 20, min: -20}
+    - {type: current, pin: 2, max: 19, mode: rms}
+    - {type: current, pin: 2, max: 68}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "M{ref} {2} {1} {3} CL_IRF9Z34N"
+    models: ".model CL_IRF9Z34N VDMOS(pchan VTO=-3.0 KP=2.2 RD=0.025 RS=0.01 RG=3 LAMBDA=0.01 CGDMAX=0.3n CGDMIN=0.03n CGS=0.6n IS=1e-12 RB=0.02 CJO=0.3n TT=80n)"
+
+# -------------------------------------------------------- power rectifiers
+1N5820:
+  description: 3 A / 20 V Schottky rectifier, low Vf, DO-201AD (pin 1 = anode)
+  kind: diode
+  package: axial_600
+  footprint: Diode_THT:D_DO-201AD_P15.24mm_Horizontal
+  mpn: 1N5820
+  design: {vf: 0.38}
+  pins: {1: {name: A}, 2: {name: K}}
+  ratings:
+    - {type: current, pin: 1, max: 3.0, mode: average}
+    - {type: current, pin: 1, max: 80}
+    - {type: voltage, pins: [2, 1], max: 20, min: -2}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_D1N5820"
+    models: ".model CL_D1N5820 D(IS=1e-4 N=1.0 RS=0.012 BV=20 IBV=1e-3 CJO=3e-10)"
+
+1N5821:
+  description: 3 A / 30 V Schottky rectifier, DO-201AD (pin 1 = anode)
+  kind: diode
+  package: axial_600
+  footprint: Diode_THT:D_DO-201AD_P15.24mm_Horizontal
+  mpn: 1N5821
+  design: {vf: 0.42}
+  pins: {1: {name: A}, 2: {name: K}}
+  ratings:
+    - {type: current, pin: 1, max: 3.0, mode: average}
+    - {type: current, pin: 1, max: 80}
+    - {type: voltage, pins: [2, 1], max: 30, min: -2}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_D1N5821"
+    models: ".model CL_D1N5821 D(IS=6e-5 N=1.02 RS=0.013 BV=30 IBV=1e-3 CJO=3e-10)"
+
+SB560:
+  description: 5 A / 60 V Schottky rectifier, DO-201AD (pin 1 = anode)
+  kind: diode
+  package: axial_600
+  footprint: Diode_THT:D_DO-201AD_P15.24mm_Horizontal
+  mpn: SB560
+  design: {vf: 0.55}
+  pins: {1: {name: A}, 2: {name: K}}
+  ratings:
+    - {type: current, pin: 1, max: 5.0, mode: average}
+    - {type: current, pin: 1, max: 150}
+    - {type: voltage, pins: [2, 1], max: 60, min: -2}
+    - {type: power, max: 3.0}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DSB560"
+    models: ".model CL_DSB560 D(IS=5e-6 N=1.1 RS=0.03 BV=60 IBV=1e-3 CJO=4e-10)"
+
+MBR1045:
+  description: 10 A / 45 V Schottky rectifier, 2 W free air, TO-220AC (1=K 2=A, tab = K)
+  kind: diode
+  package: to220_2
+  footprint: Package_TO_SOT_THT:TO-220-2_Vertical
+  mpn: MBR1045
+  design: {vf: 0.5}
+  pins:
+    1: {name: K}
+    2: {name: A}
+  ratings:
+    - {type: current, pin: 2, max: 10.0, mode: average}
+    - {type: current, pin: 2, max: 150}
+    - {type: voltage, pins: [1, 2], max: 45, min: -2}
+    - {type: power, max: 2.0}
+  spice:
+    type: primitive
+    line: "D{ref} {2} {1} CL_DMBR1045"
+    models: ".model CL_DMBR1045 D(IS=5e-5 N=1.05 RS=0.012 BV=45 IBV=1e-3 CJO=7e-10)"
+
+UF5408:
+  description: 3 A / 1000 V ultrafast rectifier (trr 75 ns), DO-201AD (pin 1 = anode)
+  kind: diode
+  package: axial_600
+  footprint: Diode_THT:D_DO-201AD_P15.24mm_Horizontal
+  mpn: UF5408
+  design: {vf: 1.3}
+  pins: {1: {name: A}, 2: {name: K}}
+  ratings:
+    - {type: current, pin: 1, max: 3.0, mode: average}
+    - {type: current, pin: 1, max: 150}
+    - {type: voltage, pins: [2, 1], max: 1000, min: -2}
+    - {type: power, max: 3.0}
+  spice:
+    type: primitive
+    line: "D{ref} {1} {2} CL_DUF5408"
+    models: ".model CL_DUF5408 D(IS=3e-8 N=2.4 RS=0.05 BV=1000 IBV=5e-6 CJO=5e-11 TT=5e-8)"
+
+# --------------------------------------------------------------- inductors
+# Rated (RMS, heating) and saturation (peak) current and DCR depend on the value within a body.
+.ind_spice: &ind_spice
+  type: primitive
+  line: |-
+    L{ref} {1} {ref}_m {value}
+    R{ref}_dcr {ref}_m {2} {d:dcr}
+    R{ref}_core {1} {2} {d:rcore}
+.ind_pins: &ind_pins
+  1: {name: "1"}
+  2: {name: "2"}
+
+L_AXIAL_CHOKE:
+  description: Axial RF choke / filter inductor, +/-10 %, 12.7 mm lead pitch (current rating and DCR by value)
+  kind: inductor
+  package: axial_500
+  footprint: Inductor_THT:L_Axial_L9.5mm_D4.0mm_P12.70mm_Horizontal_Fastron_SMCC
+  mpn: "Axial choke {value}"
+  value: required
+  value_min: 1.0e-6
+  tolerance: 0.1
+  design: {dcr: 1.0, rcore: 10000}
+  pins: *ind_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.4, mode: rms}
+  spice: *ind_spice
+  sizes:
+    - {value_max: 10.0e-6, design: {dcr: 0.08}, ratings: [{type: current, pin: 1, max: 1.0, mode: rms}, {type: current, pin: 1, max: 1.3}]}
+    - {value_max: 100.0e-6, design: {dcr: 0.8}, ratings: [{type: current, pin: 1, max: 0.4, mode: rms}, {type: current, pin: 1, max: 0.5}]}
+    - {value_max: 1.0e-3, design: {dcr: 6.0}, ratings: [{type: current, pin: 1, max: 0.15, mode: rms}, {type: current, pin: 1, max: 0.2}]}
+    - {value_max: 10.0e-3, design: {dcr: 60.0, rcore: 100000}, ratings: [{type: current, pin: 1, max: 0.05, mode: rms}, {type: current, pin: 1, max: 0.07}]}
+
+L_RADIAL_8MM:
+  description: Radial power inductor, 8 mm diameter, 5 mm pitch, +/-20 % (current rating and DCR by value)
+  kind: inductor
+  package: ind_r8
+  footprint: Inductor_THT:L_Radial_D8.7mm_P5.00mm_Fastron_07HCP
+  mpn: "Radial power inductor 8mm {value}"
+  value: required
+  value_min: 1.0e-6
+  tolerance: 0.2
+  design: {dcr: 0.1, rcore: 2000}
+  pins: *ind_pins
+  ratings:
+    - {type: current, pin: 1, max: 1.0, mode: rms}
+  spice: *ind_spice
+  sizes:
+    - {value_max: 10.0e-6, design: {dcr: 0.03}, ratings: [{type: current, pin: 1, max: 2.0, mode: rms}, {type: current, pin: 1, max: 2.5}]}
+    - {value_max: 47.0e-6, design: {dcr: 0.1}, ratings: [{type: current, pin: 1, max: 1.2, mode: rms}, {type: current, pin: 1, max: 1.5}]}
+    - {value_max: 100.0e-6, design: {dcr: 0.2}, ratings: [{type: current, pin: 1, max: 1.0, mode: rms}, {type: current, pin: 1, max: 1.2}]}
+    - {value_max: 470.0e-6, design: {dcr: 0.9, rcore: 10000}, ratings: [{type: current, pin: 1, max: 0.5, mode: rms}, {type: current, pin: 1, max: 0.6}]}
+    - {value_max: 1.0e-3, design: {dcr: 2.0, rcore: 20000}, ratings: [{type: current, pin: 1, max: 0.35, mode: rms}, {type: current, pin: 1, max: 0.4}]}
+
+L_RADIAL_12MM:
+  description: Radial power inductor, 12.5 mm diameter, 7.5 mm pitch, +/-20 %, for 3-6 A converters (current rating and DCR by value)
+  kind: inductor
+  package: ind_r12
+  footprint: Inductor_THT:L_Radial_D12.5mm_P7.50mm_Fastron_09HCP
+  mpn: "Radial power inductor 12.5mm {value}"
+  value: required
+  value_min: 4.7e-6
+  tolerance: 0.2
+  design: {dcr: 0.045, rcore: 2000}
+  pins: *ind_pins
+  ratings:
+    - {type: current, pin: 1, max: 3.0, mode: rms}
+  spice: *ind_spice
+  sizes:
+    - {value_max: 22.0e-6, design: {dcr: 0.012}, ratings: [{type: current, pin: 1, max: 6.0, mode: rms}, {type: current, pin: 1, max: 8.0}]}
+    - {value_max: 47.0e-6, design: {dcr: 0.02}, ratings: [{type: current, pin: 1, max: 4.5, mode: rms}, {type: current, pin: 1, max: 6.0}]}
+    - {value_max: 100.0e-6, design: {dcr: 0.045}, ratings: [{type: current, pin: 1, max: 3.0, mode: rms}, {type: current, pin: 1, max: 4.0}]}
+    - {value_max: 220.0e-6, design: {dcr: 0.1, rcore: 5000}, ratings: [{type: current, pin: 1, max: 2.0, mode: rms}, {type: current, pin: 1, max: 2.7}]}
+    - {value_max: 470.0e-6, design: {dcr: 0.22, rcore: 10000}, ratings: [{type: current, pin: 1, max: 1.4, mode: rms}, {type: current, pin: 1, max: 1.8}]}
+
+L_TOROID_24MM:
+  description: Toroidal power inductor on a base, 24 mm, 15 mm pitch, +/-20 %, for high-current converters (current rating and DCR by value)
+  kind: inductor
+  package: ind_toroid24
+  footprint: Inductor_THT:L_Toroid_Vertical_L24.6mm_W15.5mm_P11.44mm_Pulse_KM-4
+  mpn: "Toroid power inductor {value}"
+  value: required
+  value_min: 4.7e-6
+  value_max: 330.0e-6
+  tolerance: 0.2
+  design: {dcr: 0.015, rcore: 2000}
+  pins: *ind_pins
+  ratings:
+    - {type: current, pin: 1, max: 6.0, mode: rms}
+  spice: *ind_spice
+  sizes:
+    - {value_max: 33.0e-6, design: {dcr: 0.006}, ratings: [{type: current, pin: 1, max: 10.0, mode: rms}, {type: current, pin: 1, max: 12.0}]}
+    - {value_max: 100.0e-6, design: {dcr: 0.015}, ratings: [{type: current, pin: 1, max: 6.0, mode: rms}, {type: current, pin: 1, max: 8.0}]}
+    - {value_max: 330.0e-6, design: {dcr: 0.04, rcore: 5000}, ratings: [{type: current, pin: 1, max: 3.5, mode: rms}, {type: current, pin: 1, max: 4.5}]}
+
+# ------------------------------------------- low-ESR electrolytics (switching)
+.lesr_sizes:
+  - &l5 {value_max: 1, package: ecap_d5, footprint: "Capacitor_THT:CP_Radial_D5.0mm_P2.50mm", design: {esr: 0.3}, ratings: [{type: current, pin: 1, max: 0.3, mode: rms}]}
+  - &l6 {value_max: 1, package: ecap_d5, footprint: "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm", design: {esr: 0.15}, ratings: [{type: current, pin: 1, max: 0.5, mode: rms}]}
+  - &l8 {value_max: 1, package: ecap_d8, footprint: "Capacitor_THT:CP_Radial_D8.0mm_P5.00mm", design: {esr: 0.08}, ratings: [{type: current, pin: 1, max: 0.9, mode: rms}]}
+  - &l10 {value_max: 1, package: ecap_d10, footprint: "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm", design: {esr: 0.04}, ratings: [{type: current, pin: 1, max: 1.4, mode: rms}]}
+  - &l12 {value_max: 1, package: ecap_d12, footprint: "Capacitor_THT:CP_Radial_D12.5mm_P5.00mm", design: {esr: 0.025}, ratings: [{type: current, pin: 1, max: 2.0, mode: rms}]}
+  - &l16 {value_max: 1, package: ecap_d16, footprint: "Capacitor_THT:CP_Radial_D16.0mm_P7.50mm", design: {esr: 0.018}, ratings: [{type: current, pin: 1, max: 2.8, mode: rms}]}
+.lesr_spice: &lesr_spice
+  type: primitive
+  line: |-
+    C{ref} {1} {ref}_esr {value}
+    R{ref}_esr {ref}_esr {2} {d:esr}
+
+C_ELEC_LESR_16V:
+  description: Low-ESR aluminium electrolytic (switching converters), 16 V, +/-20 %, pin 1 = +; can 5-16 mm, ESR and ripple rating by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Low-ESR electrolytic 16V {value}"
+  value: required
+  value_min: 4.7e-6
+  tolerance: 0.2
+  design: {esr: 0.3}
+  pins: {1: {name: POS}, 2: {name: NEG}}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 16, min: -0.5}
+  spice: *lesr_spice
+  sizes:
+    - {<<: *l5, value_max: 47.0e-6}
+    - {<<: *l6, value_max: 150.0e-6}
+    - {<<: *l8, value_max: 470.0e-6}
+    - {<<: *l10, value_max: 1000.0e-6}
+    - {<<: *l12, value_max: 2200.0e-6}
+    - {<<: *l16, value_max: 4700.0e-6}
+
+C_ELEC_LESR_25V:
+  description: Low-ESR aluminium electrolytic (switching converters), 25 V, +/-20 %, pin 1 = +; can 5-16 mm, ESR and ripple rating by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Low-ESR electrolytic 25V {value}"
+  value: required
+  value_min: 4.7e-6
+  tolerance: 0.2
+  design: {esr: 0.3}
+  pins: {1: {name: POS}, 2: {name: NEG}}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 25, min: -0.5}
+  spice: *lesr_spice
+  sizes:
+    - {<<: *l5, value_max: 33.0e-6}
+    - {<<: *l6, value_max: 100.0e-6}
+    - {<<: *l8, value_max: 330.0e-6}
+    - {<<: *l10, value_max: 1000.0e-6}
+    - {<<: *l12, value_max: 1500.0e-6}
+    - {<<: *l16, value_max: 3300.0e-6}
+
+C_ELEC_LESR_35V:
+  description: Low-ESR aluminium electrolytic (switching converters), 35 V, +/-20 %, pin 1 = +; can 5-16 mm, ESR and ripple rating by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Low-ESR electrolytic 35V {value}"
+  value: required
+  value_min: 2.2e-6
+  tolerance: 0.2
+  design: {esr: 0.3}
+  pins: {1: {name: POS}, 2: {name: NEG}}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 35, min: -0.5}
+  spice: *lesr_spice
+  sizes:
+    - {<<: *l5, value_max: 22.0e-6}
+    - {<<: *l6, value_max: 68.0e-6}
+    - {<<: *l8, value_max: 220.0e-6}
+    - {<<: *l10, value_max: 470.0e-6}
+    - {<<: *l12, value_max: 1000.0e-6}
+    - {<<: *l16, value_max: 2200.0e-6}
+
+C_ELEC_LESR_50V:
+  description: Low-ESR aluminium electrolytic (switching converters), 50 V, +/-20 %, pin 1 = +; can 5-16 mm, ESR and ripple rating by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Low-ESR electrolytic 50V {value}"
+  value: required
+  value_min: 1.0e-6
+  tolerance: 0.2
+  design: {esr: 0.3}
+  pins: {1: {name: POS}, 2: {name: NEG}}
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 50, min: -0.5}
+  spice: *lesr_spice
+  sizes:
+    - {<<: *l5, value_max: 10.0e-6}
+    - {<<: *l6, value_max: 33.0e-6}
+    - {<<: *l8, value_max: 100.0e-6}
+    - {<<: *l10, value_max: 330.0e-6}
+    - {<<: *l12, value_max: 680.0e-6}
+    - {<<: *l16, value_max: 1500.0e-6}
+
+# ---------------------------------------------------------- power resistors
+R_MO_2W:
+  description: Metal oxide power resistor, 2 W, +/-5 %, axial (20.32 mm lead pitch, mount 3 mm above the board)
+  kind: resistor
+  package: axial_800
+  footprint: Resistor_THT:R_Axial_DIN0617_L17.0mm_D6.0mm_P20.32mm_Horizontal
+  mpn: "MO 2W 5% {value}"
+  value: required
+  value_min: 0.1
+  value_max: 100.0e+3
+  tolerance: 0.05
+  pins: {1: {name: "1"}, 2: {name: "2"}}
+  ratings:
+    - {type: power, max: 2.0}
+    - {type: voltage, pins: [1, 2], max: 350}
+  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+
+R_MO_3W:
+  description: Metal oxide power resistor, 3 W, +/-5 %, axial (22.86 mm lead pitch, mount 3 mm above the board)
+  kind: resistor
+  package: axial_900
+  footprint: Resistor_THT:R_Axial_DIN0918_L18.0mm_D9.0mm_P22.86mm_Horizontal
+  mpn: "MO 3W 5% {value}"
+  value: required
+  value_min: 0.1
+  value_max: 100.0e+3
+  tolerance: 0.05
+  pins: {1: {name: "1"}, 2: {name: "2"}}
+  ratings:
+    - {type: power, max: 3.0}
+    - {type: voltage, pins: [1, 2], max: 500}
+  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+
+R_CEM_5W:
+  description: Cement (wirewound) power resistor, 5 W, +/-5 %, axial (27.94 mm lead pitch, mount above the board); low-ohm current sensing and loads
+  kind: resistor
+  package: axial_1100
+  footprint: Resistor_THT:R_Axial_Power_L25.0mm_W6.4mm_P27.94mm
+  mpn: "Cement 5W 5% {value}"
+  value: required
+  value_min: 0.05
+  value_max: 10.0e+3
+  tolerance: 0.05
+  pins: {1: {name: "1"}, 2: {name: "2"}}
+  ratings:
+    - {type: power, max: 5.0}
+    - {type: voltage, pins: [1, 2], max: 350}
+  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}

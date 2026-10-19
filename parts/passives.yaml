@@ -1,20 +1,29 @@
 # Passive components. Ratings are absolute maximums; spec.derating is applied in
 # normal operation, the raw value under fault injection.
+#
+# Keys starting with "." are templates (YAML anchors only), not parts.
+
+# ------------------------------------------------------------------ resistors
+# Metal film (+/-1 %) for precision, carbon film (+/-5 %) where tolerance does not matter,
+# precision metal film (+/-0.1 %) for references and measurement dividers.
+.res_spice: &res_spice {type: primitive, line: "R{ref} {1} {2} {value}"}
+.res_pins: &res_pins
+  1: {name: "1"}
+  2: {name: "2"}
+
 R_1/4W:
-  description: Metal film resistor, 1/4 W, +/-1 %, axial (10.16 mm lead pitch)
+  description: Metal film resistor, 1/4 W, +/-1 %, 50 ppm/K, axial (10.16 mm lead pitch)
   kind: resistor
   package: axial_400
   footprint: Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal
   mpn: "MF 1/4W {value}"
   value: required
   tolerance: 0.01
-  pins:
-    1: {name: "1"}
-    2: {name: "2"}
+  pins: *res_pins
   ratings:
     - {type: power, max: 0.25}
     - {type: voltage, pins: [1, 2], max: 250}
-  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+  spice: *res_spice
 
 R_1/2W:
   description: Metal film resistor, 1/2 W, +/-1 %, axial (12.7 mm lead pitch)
@@ -24,13 +33,78 @@ R_1/2W:
   mpn: "MF 1/2W {value}"
   value: required
   tolerance: 0.01
-  pins:
-    1: {name: "1"}
-    2: {name: "2"}
+  pins: *res_pins
   ratings:
     - {type: power, max: 0.5}
     - {type: voltage, pins: [1, 2], max: 350}
-  spice: {type: primitive, line: "R{ref} {1} {2} {value}"}
+  spice: *res_spice
+
+R_MF_1/8W:
+  description: Small metal film resistor, 1/8 W, +/-1 %, axial (7.62 mm lead pitch)
+  kind: resistor
+  package: axial_300
+  footprint: Resistor_THT:R_Axial_DIN0204_L3.6mm_D1.6mm_P7.62mm_Horizontal
+  mpn: "MF 1/8W {value}"
+  value: required
+  value_min: 1.0
+  value_max: 1.0e+6
+  tolerance: 0.01
+  pins: *res_pins
+  ratings:
+    - {type: power, max: 0.125}
+    - {type: voltage, pins: [1, 2], max: 150}
+  spice: *res_spice
+
+R_PREC_1/4W:
+  description: Precision metal film resistor, 1/4 W, +/-0.1 %, 25 ppm/K, axial (10.16 mm lead pitch)
+  kind: resistor
+  package: axial_400
+  footprint: Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal
+  mpn: "Precision MF 1/4W 0.1% 25ppm {value}"
+  value: required
+  value_min: 10.0
+  value_max: 1.0e+6
+  tolerance: 0.001
+  pins: *res_pins
+  ratings:
+    - {type: power, max: 0.25}
+    - {type: voltage, pins: [1, 2], max: 200}
+  spice: *res_spice
+
+R_CF_1/4W:
+  description: Carbon film resistor, 1/4 W, +/-5 %, axial (10.16 mm lead pitch)
+  kind: resistor
+  package: axial_400
+  footprint: Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal
+  mpn: "CF 1/4W 5% {value}"
+  value: required
+  value_min: 1.0
+  value_max: 10.0e+6
+  tolerance: 0.05
+  pins: *res_pins
+  ratings:
+    - {type: power, max: 0.25}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: *res_spice
+
+R_CF_1/2W:
+  description: Carbon film resistor, 1/2 W, +/-5 %, axial (12.7 mm lead pitch)
+  kind: resistor
+  package: axial_500
+  footprint: Resistor_THT:R_Axial_DIN0309_L9.0mm_D3.2mm_P12.70mm_Horizontal
+  mpn: "CF 1/2W 5% {value}"
+  value: required
+  value_min: 1.0
+  value_max: 10.0e+6
+  tolerance: 0.05
+  pins: *res_pins
+  ratings:
+    - {type: power, max: 0.5}
+    - {type: voltage, pins: [1, 2], max: 350}
+  spice: *res_spice
+
+# --------------------------------------------------------- ceramic capacitors
+.cap_spice: &cap_spice {type: primitive, line: "C{ref} {1} {2} {value}"}
 
 C_CER_50V:
   description: Multilayer ceramic capacitor, 50 V, X7R +/-10 %, radial 2.54 mm
@@ -41,15 +115,59 @@ C_CER_50V:
   value: required
   value_max: 10.0e-6
   tolerance: 0.1
-  pins:
-    1: {name: "1"}
-    2: {name: "2"}
+  pins: *res_pins
   ratings:
     - {type: voltage, pins: [1, 2], max: 50}
-  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+  spice: *cap_spice
 
+C_CER_X7R_100V:
+  description: Multilayer ceramic capacitor, 100 V, X7R +/-10 %, radial 5.08 mm
+  kind: capacitor
+  package: radial_200
+  footprint: Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm
+  mpn: "MLCC 100V X7R {value}"
+  value: required
+  value_min: 100.0e-12
+  value_max: 1.0e-6
+  tolerance: 0.1
+  pins: *res_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 100}
+  spice: *cap_spice
+
+C_CER_C0G_50V:
+  description: Multilayer ceramic capacitor, 50 V, C0G/NP0 +/-5 % (stable, for timing and filters), radial 2.54 mm
+  kind: capacitor
+  package: radial_100
+  footprint: Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm
+  mpn: "MLCC 50V C0G 5% {value}"
+  value: required
+  value_min: 1.0e-12
+  value_max: 47.0e-9
+  tolerance: 0.05
+  pins: *res_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 50}
+  spice: *cap_spice
+
+C_CER_C0G_1PCT:
+  description: Multilayer ceramic capacitor, 50 V, C0G/NP0 +/-1 % (precision timing), radial 2.54 mm
+  kind: capacitor
+  package: radial_100
+  footprint: Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P2.50mm
+  mpn: "MLCC 50V C0G 1% {value}"
+  value: required
+  value_min: 10.0e-12
+  value_max: 10.0e-9
+  tolerance: 0.01
+  pins: *res_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 50}
+  spice: *cap_spice
+
+# ------------------------------------------------------------ film capacitors
 C_FILM_100V:
-  description: Polyester film capacitor, 100 V, +/-10 %, radial 5.08 mm
+  description: Polyester (PET) film capacitor, 100 V, +/-10 %, radial 5.08 mm
   kind: capacitor
   package: radial_200
   footprint: Capacitor_THT:C_Rect_L7.2mm_W2.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2
@@ -57,63 +175,281 @@ C_FILM_100V:
   value: required
   value_max: 1.0e-6
   tolerance: 0.1
-  pins:
-    1: {name: "1"}
-    2: {name: "2"}
+  pins: *res_pins
   ratings:
     - {type: voltage, pins: [1, 2], max: 100}
-  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+  spice: *cap_spice
+
+C_FILM_PET_5PCT:
+  description: Polyester (PET) film capacitor, 63 V, +/-5 %, radial; body grows with the value (5 / 7.5 / 10 / 15 mm pitch)
+  kind: capacitor
+  package: radial_200
+  footprint: Capacitor_THT:C_Rect_L7.2mm_W2.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2
+  mpn: "PET film 63V 5% {value}"
+  value: required
+  value_min: 1.0e-9
+  tolerance: 0.05
+  pins: *res_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 63}
+  spice: *cap_spice
+  sizes:
+    - {value_max: 470.0e-9, package: radial_200, footprint: "Capacitor_THT:C_Rect_L7.2mm_W2.5mm_P5.00mm_FKS2_FKP2_MKS2_MKP2"}
+    - {value_max: 1.0e-6, package: radial_300, footprint: "Capacitor_THT:C_Rect_L10.0mm_W3.0mm_P7.50mm_FKS3_FKP3"}
+    - {value_max: 4.7e-6, package: radial_400, footprint: "Capacitor_THT:C_Rect_L13.0mm_W6.0mm_P10.00mm_FKS3_FKP3_MKS4"}
+    - {value_max: 10.0e-6, package: radial_600, footprint: "Capacitor_THT:C_Rect_L18.0mm_W8.0mm_P15.00mm_FKS3_FKP3"}
+
+C_FILM_PP_100V:
+  description: Polypropylene (PP) film capacitor, 100 V, +/-5 %, low loss (filters, timing), radial 7.5 / 10 mm pitch
+  kind: capacitor
+  package: radial_300
+  footprint: Capacitor_THT:C_Rect_L10.0mm_W3.0mm_P7.50mm_FKS3_FKP3
+  mpn: "PP film 100V 5% {value}"
+  value: required
+  value_min: 100.0e-12
+  tolerance: 0.05
+  pins: *res_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 100}
+  spice: *cap_spice
+  sizes:
+    - {value_max: 220.0e-9, package: radial_300, footprint: "Capacitor_THT:C_Rect_L10.0mm_W3.0mm_P7.50mm_FKS3_FKP3"}
+    - {value_max: 1.0e-6, package: radial_400, footprint: "Capacitor_THT:C_Rect_L13.0mm_W6.0mm_P10.00mm_FKS3_FKP3_MKS4"}
+
+C_FILM_PP_1PCT:
+  description: Precision polypropylene film capacitor, 63 V, +/-1 % (precision timing and filters), radial 7.5 mm pitch
+  kind: capacitor
+  package: radial_300
+  footprint: Capacitor_THT:C_Rect_L10.0mm_W3.0mm_P7.50mm_FKS3_FKP3
+  mpn: "PP film 63V 1% {value}"
+  value: required
+  value_min: 100.0e-12
+  value_max: 100.0e-9
+  tolerance: 0.01
+  pins: *res_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 63}
+  spice: *cap_spice
+
+# ---------------------------------------------- aluminium electrolytic capacitors
+# General-purpose 105 C series. The can (footprint), ESR (100 kHz) and ripple-current rating
+# (RMS, pin 1) follow the value; typical datasheet figures, check your series.
+.ecap_spice: &ecap_spice
+  type: primitive
+  line: |-
+    C{ref} {1} {ref}_esr {value}
+    R{ref}_esr {ref}_esr {2} {d:esr}
+.ecap_pins: &ecap_pins
+  1: {name: POS}
+  2: {name: NEG}
+.ecap_sizes:
+  - &d5 {value_max: 1, package: ecap_d5, footprint: "Capacitor_THT:CP_Radial_D5.0mm_P2.50mm", design: {esr: 1.2}, ratings: [{type: current, pin: 1, max: 0.1, mode: rms}]}
+  - &d6 {value_max: 1, package: ecap_d5, footprint: "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm", design: {esr: 0.6}, ratings: [{type: current, pin: 1, max: 0.2, mode: rms}]}
+  - &d8 {value_max: 1, package: ecap_d8, footprint: "Capacitor_THT:CP_Radial_D8.0mm_P5.00mm", design: {esr: 0.35}, ratings: [{type: current, pin: 1, max: 0.35, mode: rms}]}
+  - &d10 {value_max: 1, package: ecap_d10, footprint: "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm", design: {esr: 0.2}, ratings: [{type: current, pin: 1, max: 0.6, mode: rms}]}
+  - &d12 {value_max: 1, package: ecap_d12, footprint: "Capacitor_THT:CP_Radial_D12.5mm_P5.00mm", design: {esr: 0.12}, ratings: [{type: current, pin: 1, max: 1.0, mode: rms}]}
+  - &d16 {value_max: 1, package: ecap_d16, footprint: "Capacitor_THT:CP_Radial_D16.0mm_P7.50mm", design: {esr: 0.07}, ratings: [{type: current, pin: 1, max: 1.5, mode: rms}]}
+  - &d18 {value_max: 1, package: ecap_d18, footprint: "Capacitor_THT:CP_Radial_D18.0mm_P7.50mm", design: {esr: 0.05}, ratings: [{type: current, pin: 1, max: 2.0, mode: rms}]}
+
+C_ELEC_6.3V:
+  description: Aluminium electrolytic capacitor, 6.3 V, +/-20 %, polarised (pin 1 = +); can 5-18 mm by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Electrolytic 6.3V {value}"
+  value: required
+  value_min: 1.0e-6
+  tolerance: 0.2
+  design: {esr: 1.2}
+  pins: *ecap_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 6.3, min: -0.5}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 100.0e-6}
+    - {<<: *d6, value_max: 220.0e-6}
+    - {<<: *d8, value_max: 470.0e-6}
+    - {<<: *d10, value_max: 1000.0e-6}
+    - {<<: *d12, value_max: 2200.0e-6}
+    - {<<: *d16, value_max: 4700.0e-6}
+    - {<<: *d18, value_max: 6800.0e-6}
+
+C_ELEC_10V:
+  description: Aluminium electrolytic capacitor, 10 V, +/-20 %, polarised (pin 1 = +); can 5-16 mm by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Electrolytic 10V {value}"
+  value: required
+  value_min: 1.0e-6
+  tolerance: 0.2
+  design: {esr: 1.2}
+  pins: *ecap_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 10, min: -0.5}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 47.0e-6}
+    - {<<: *d6, value_max: 220.0e-6}
+    - {<<: *d8, value_max: 470.0e-6}
+    - {<<: *d10, value_max: 1000.0e-6}
+    - {<<: *d12, value_max: 2200.0e-6}
+    - {<<: *d16, value_max: 4700.0e-6}
 
 C_ELEC_16V:
-  description: Aluminium electrolytic capacitor, 16 V, radial 2.5 mm, 5-6.3 mm body, up to 100 uF, +/-20 %, polarised (pin 1 = +)
+  description: Aluminium electrolytic capacitor, 16 V, +/-20 %, polarised (pin 1 = +); can 5-18 mm by value
   kind: electrolytic
   package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
   mpn: "Electrolytic 16V {value}"
   value: required
-  value_max: 100.0e-6
+  value_min: 0.47e-6
   tolerance: 0.2
-  design: {esr: 0.5}
-  pins:
-    1: {name: POS}
-    2: {name: NEG}
+  design: {esr: 1.2}
+  pins: *ecap_pins
   ratings:
     - {type: voltage, pins: [1, 2], max: 16, min: -0.5}
-  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 47.0e-6}
+    - {<<: *d6, value_max: 100.0e-6}
+    - {<<: *d8, value_max: 220.0e-6}
+    - {<<: *d10, value_max: 470.0e-6}
+    - {<<: *d12, value_max: 1000.0e-6}
+    - {<<: *d16, value_max: 2200.0e-6}
+    - {<<: *d18, value_max: 3300.0e-6}
 
 C_ELEC_25V:
-  description: Aluminium electrolytic capacitor, 25 V, radial 2.5 mm, 5-6.3 mm body, up to 100 uF, +/-20 %, polarised (pin 1 = +)
+  description: Aluminium electrolytic capacitor, 25 V, +/-20 %, polarised (pin 1 = +); can 5-18 mm by value
   kind: electrolytic
   package: ecap_d5
   footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
   mpn: "Electrolytic 25V {value}"
   value: required
-  value_max: 100.0e-6
+  value_min: 0.1e-6
   tolerance: 0.2
-  design: {esr: 0.5}
-  pins:
-    1: {name: POS}
-    2: {name: NEG}
+  design: {esr: 1.2}
+  pins: *ecap_pins
   ratings:
     - {type: voltage, pins: [1, 2], max: 25, min: -0.5}
-  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 22.0e-6}
+    - {<<: *d6, value_max: 47.0e-6}
+    - {<<: *d8, value_max: 100.0e-6}
+    - {<<: *d10, value_max: 330.0e-6}
+    - {<<: *d12, value_max: 680.0e-6}
+    - {<<: *d16, value_max: 1500.0e-6}
+    - {<<: *d18, value_max: 2200.0e-6}
 
 C_ELEC_35V:
-  description: Aluminium electrolytic capacitor, 35 V, radial 2.5 mm, 5-6.3 mm body, up to 100 uF, +/-20 %, polarised (pin 1 = +)
+  description: Aluminium electrolytic capacitor, 35 V, +/-20 %, polarised (pin 1 = +); can 5-18 mm by value
   kind: electrolytic
   package: ecap_d5
-  footprint: Capacitor_THT:CP_Radial_D6.3mm_P2.50mm
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
   mpn: "Electrolytic 35V {value}"
   value: required
-  value_max: 100.0e-6
+  value_min: 0.1e-6
   tolerance: 0.2
-  design: {esr: 0.5}
-  pins:
-    1: {name: POS}
-    2: {name: NEG}
+  design: {esr: 1.2}
+  pins: *ecap_pins
   ratings:
     - {type: voltage, pins: [1, 2], max: 35, min: -0.5}
-  spice: {type: primitive, line: "C{ref} {1} {2} {value}"}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 22.0e-6}
+    - {<<: *d6, value_max: 47.0e-6}
+    - {<<: *d8, value_max: 100.0e-6}
+    - {<<: *d10, value_max: 220.0e-6}
+    - {<<: *d12, value_max: 470.0e-6}
+    - {<<: *d16, value_max: 1000.0e-6}
+    - {<<: *d18, value_max: 1500.0e-6}
+
+C_ELEC_50V:
+  description: Aluminium electrolytic capacitor, 50 V, +/-20 %, polarised (pin 1 = +); can 5-18 mm by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Electrolytic 50V {value}"
+  value: required
+  value_min: 0.1e-6
+  tolerance: 0.2
+  design: {esr: 1.2}
+  pins: *ecap_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 50, min: -0.5}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 10.0e-6}
+    - {<<: *d6, value_max: 22.0e-6}
+    - {<<: *d8, value_max: 47.0e-6}
+    - {<<: *d10, value_max: 100.0e-6}
+    - {<<: *d12, value_max: 220.0e-6}
+    - {<<: *d16, value_max: 470.0e-6}
+    - {<<: *d18, value_max: 1000.0e-6}
+
+C_ELEC_63V:
+  description: Aluminium electrolytic capacitor, 63 V, +/-20 %, polarised (pin 1 = +); can 5-18 mm by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Electrolytic 63V {value}"
+  value: required
+  value_min: 0.1e-6
+  tolerance: 0.2
+  design: {esr: 1.2}
+  pins: *ecap_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 63, min: -0.5}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 4.7e-6}
+    - {<<: *d6, value_max: 10.0e-6}
+    - {<<: *d8, value_max: 33.0e-6}
+    - {<<: *d10, value_max: 68.0e-6}
+    - {<<: *d12, value_max: 150.0e-6}
+    - {<<: *d16, value_max: 330.0e-6}
+    - {<<: *d18, value_max: 470.0e-6}
+
+C_ELEC_100V:
+  description: Aluminium electrolytic capacitor, 100 V, +/-20 %, polarised (pin 1 = +); can 5-18 mm by value
+  kind: electrolytic
+  package: ecap_d5
+  footprint: Capacitor_THT:CP_Radial_D5.0mm_P2.50mm
+  mpn: "Electrolytic 100V {value}"
+  value: required
+  value_min: 0.1e-6
+  tolerance: 0.2
+  design: {esr: 1.2}
+  pins: *ecap_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 100, min: -0.5}
+  spice: *ecap_spice
+  sizes:
+    - {<<: *d5, value_max: 2.2e-6}
+    - {<<: *d6, value_max: 4.7e-6}
+    - {<<: *d8, value_max: 10.0e-6}
+    - {<<: *d10, value_max: 33.0e-6}
+    - {<<: *d12, value_max: 68.0e-6}
+    - {<<: *d16, value_max: 150.0e-6}
+    - {<<: *d18, value_max: 220.0e-6}
+
+# ------------------------------------------------------ resettable fuses (PTC)
+PTC_RXEF010:
+  description: Resettable PTC fuse, 0.1 A hold / 0.2 A trip, 72 V, radial 5.1 mm, ~2.5 Ohm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF010
+  design: {r: 2.5}
+  pins: *res_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.1, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 72}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 2.5"
+    note: "untripped state only (typ. ~2.5 ohm); trip behaviour is not simulated"
 
 PTC_RXEF020:
   description: Resettable PTC fuse, 0.2 A hold / 0.4 A trip, 72 V, radial 5.1 mm
@@ -122,9 +458,7 @@ PTC_RXEF020:
   footprint: Fuse:Fuse_Littelfuse-LVR100
   mpn: RXEF020
   design: {r: 1.0}
-  pins:
-    1: {name: "1"}
-    2: {name: "2"}
+  pins: *res_pins
   ratings:
     - {type: current, pin: 1, max: 0.2}
     - {type: voltage, pins: [1, 2], max: 72}
@@ -133,6 +467,22 @@ PTC_RXEF020:
     line: "R{ref} {1} {2} 1.0"
     note: "untripped state only (typ. ~1 ohm); trip behaviour is not simulated"
 
+PTC_RXEF030:
+  description: Resettable PTC fuse, 0.3 A hold / 0.6 A trip, 72 V, radial 5.1 mm, ~0.8 Ohm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF030
+  design: {r: 0.8}
+  pins: *res_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.3, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 72}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 0.8"
+    note: "untripped state only (typ. ~0.8 ohm); trip behaviour is not simulated"
+
 PTC_RXEF050:
   description: Resettable PTC fuse, 0.5 A hold / 1.0 A trip, 72 V, radial 5.1 mm
   kind: ptc
@@ -140,9 +490,7 @@ PTC_RXEF050:
   footprint: Fuse:Fuse_Littelfuse-LVR100
   mpn: RXEF050
   design: {r: 0.4}
-  pins:
-    1: {name: "1"}
-    2: {name: "2"}
+  pins: *res_pins
   ratings:
     - {type: current, pin: 1, max: 0.5}
     - {type: voltage, pins: [1, 2], max: 72}
@@ -150,3 +498,108 @@ PTC_RXEF050:
     type: equivalent
     line: "R{ref} {1} {2} 0.4"
     note: "untripped state only (typ. ~0.4 ohm); trip behaviour is not simulated"
+
+PTC_RXEF075:
+  description: Resettable PTC fuse, 0.75 A hold / 1.5 A trip, 72 V, radial 5.1 mm, ~0.25 Ohm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF075
+  design: {r: 0.25}
+  pins: *res_pins
+  ratings:
+    - {type: current, pin: 1, max: 0.75, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 72}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 0.25"
+    note: "untripped state only (typ. ~0.25 ohm); trip behaviour is not simulated"
+
+PTC_RXEF110:
+  description: Resettable PTC fuse, 1.1 A hold / 2.2 A trip, 72 V, radial 5.1 mm, ~0.15 Ohm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF110
+  design: {r: 0.15}
+  pins: *res_pins
+  ratings:
+    - {type: current, pin: 1, max: 1.1, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 72}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 0.15"
+    note: "untripped state only (typ. ~0.15 ohm); trip behaviour is not simulated"
+
+PTC_RXEF160:
+  description: Resettable PTC fuse, 1.6 A hold / 3.2 A trip, 72 V, radial 5.1 mm, ~0.09 Ohm
+  kind: ptc
+  package: radial_200
+  footprint: Fuse:Fuse_Littelfuse-LVR100
+  mpn: RXEF160
+  design: {r: 0.09}
+  pins: *res_pins
+  ratings:
+    - {type: current, pin: 1, max: 1.6, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 72}
+  spice:
+    type: equivalent
+    line: "R{ref} {1} {2} 0.09"
+    note: "untripped state only (typ. ~0.09 ohm); trip behaviour is not simulated"
+
+# ---------------------------------------------------- glass fuses (5x20 mm)
+.fuse_common: &fuse_common
+  kind: fuse
+  package: axial_900
+  footprint: Fuse:Fuseholder_Cylinder-5x20mm_Schurter_0031_8201_Horizontal_Open
+  pins: *res_pins
+
+FUSE_5X20_0.5A:
+  <<: *fuse_common
+  description: Glass fuse 5x20 mm, 0.5 A fast-acting, 250 V, in a PCB fuse holder, ~0.3 Ohm
+  mpn: "Fuse 5x20 F500mA 250V + holder"
+  design: {r: 0.3}
+  ratings:
+    - {type: current, pin: 1, max: 0.5, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: {type: equivalent, line: "R{ref} {1} {2} 0.3", note: "intact fuse only (cold resistance); blowing is not simulated"}
+
+FUSE_5X20_1A:
+  <<: *fuse_common
+  description: Glass fuse 5x20 mm, 1 A fast-acting, 250 V, in a PCB fuse holder, ~0.12 Ohm
+  mpn: "Fuse 5x20 F1A 250V + holder"
+  design: {r: 0.12}
+  ratings:
+    - {type: current, pin: 1, max: 1.0, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: {type: equivalent, line: "R{ref} {1} {2} 0.12", note: "intact fuse only (cold resistance); blowing is not simulated"}
+
+FUSE_5X20_2A:
+  <<: *fuse_common
+  description: Glass fuse 5x20 mm, 2 A fast-acting, 250 V, in a PCB fuse holder, ~0.05 Ohm
+  mpn: "Fuse 5x20 F2A 250V + holder"
+  design: {r: 0.05}
+  ratings:
+    - {type: current, pin: 1, max: 2.0, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: {type: equivalent, line: "R{ref} {1} {2} 0.05", note: "intact fuse only (cold resistance); blowing is not simulated"}
+
+FUSE_5X20_3.15A:
+  <<: *fuse_common
+  description: Glass fuse 5x20 mm, 3.15 A fast-acting, 250 V, in a PCB fuse holder, ~0.03 Ohm
+  mpn: "Fuse 5x20 F3.15A 250V + holder"
+  design: {r: 0.03}
+  ratings:
+    - {type: current, pin: 1, max: 3.15, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: {type: equivalent, line: "R{ref} {1} {2} 0.03", note: "intact fuse only (cold resistance); blowing is not simulated"}
+
+FUSE_5X20_5A:
+  <<: *fuse_common
+  description: Glass fuse 5x20 mm, 5 A fast-acting, 250 V, in a PCB fuse holder, ~0.015 Ohm
+  mpn: "Fuse 5x20 F5A 250V + holder"
+  design: {r: 0.015}
+  ratings:
+    - {type: current, pin: 1, max: 5.0, mode: rms}
+    - {type: voltage, pins: [1, 2], max: 250}
+  spice: {type: equivalent, line: "R{ref} {1} {2} 0.015", note: "intact fuse only (cold resistance); blowing is not simulated"}

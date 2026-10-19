@@ -177,3 +177,709 @@ L78L05:
     line: "X{ref} {3} {2} {1} CL_REG params: vout={p:vout} vdrop=1.7 iq=3m"
     params:
       vout: {value: 5.0, tolerance: 0.05}   # approx. datasheet output tolerance; check your part
+
+# ---------------------------------------------------------------- op-amps
+# CL_OPAMP2 (TL072, NE5532, MCP6002): single-pole op-amp (open-loop gain aol, pole fp -> GBW =
+# aol x fp) whose output swings from V- + voldrop to V+ - vohdrop. Slew rate, noise and input common-mode limits are
+# not modelled: respect the input range stated in the description.
+.dual_opamp_pins: &dual_opamp_pins
+  1: {name: OUTA, type: output}
+  2: {name: INNA, type: input}
+  3: {name: INPA, type: input}
+  4: {name: VEE, type: power_in}
+  5: {name: INPB, type: input}
+  6: {name: INNB, type: input}
+  7: {name: OUTB, type: output}
+  8: {name: VCC, type: power_in}
+LM324:
+  description: Quad op-amp (4 x LM358), single supply 3-32 V, inputs include ground, DIP-14
+  kind: opamp
+  package: dip14
+  footprint: Package_DIP:DIP-14_W7.62mm
+  mpn: LM324N
+  design: {voh_drop: 1.5, vcc_min: 3.0, iq: 0.0012}
+  pins:
+    1: {name: OUT1, type: output}
+    2: {name: INN1, type: input}
+    3: {name: INP1, type: input}
+    4: {name: VCC, type: power_in}
+    5: {name: INP2, type: input}
+    6: {name: INN2, type: input}
+    7: {name: OUT2, type: output}
+    8: {name: OUT3, type: output}
+    9: {name: INN3, type: input}
+    10: {name: INP3, type: input}
+    11: {name: GND, type: power_in}
+    12: {name: INP4, type: input}
+    13: {name: INN4, type: input}
+    14: {name: OUT4, type: output}
+  ratings:
+    - {type: voltage, pins: [4, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [2, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [3, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [5, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [6, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [9, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [10, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [12, 11], max: 32, min: -0.3}
+    - {type: voltage, pins: [13, 11], max: 32, min: -0.3}
+    - {type: current, pin: 1, max: 0.04}
+    - {type: current, pin: 7, max: 0.04}
+    - {type: current, pin: 8, max: 0.04}
+    - {type: current, pin: 14, max: 0.04}
+    - {type: power, max: 1.0}
+  decoupling:
+    - {pin: 4, gnd: 11, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} CL_LM324"
+    models: |
+      .subckt CL_OPAMP INP INN OUT VCC GND params: aol=1e5 vohdrop=1.5 iq=0.35m
+      Bg a GND V = {aol}*(V(INP,GND)-V(INN,GND))
+      Rp a b 1k
+      Cp b GND 15.9u
+      Bo o GND V = max(min(V(b,GND), V(VCC,GND)-{vohdrop}), 0.005)
+      Vso o o2 0
+      Ro o2 OUT 50
+      Bsup VCC GND I = (max(i(Vso),0) + {iq})*0.5*(1+tanh(5*(V(VCC,GND)-0.5)))
+      Rlk VCC GND 1meg
+      .ends CL_OPAMP
+      .subckt CL_LM324 OUT1 INN1 INP1 VCC INP2 INN2 OUT2 OUT3 INN3 INP3 GND INP4 INN4 OUT4
+      X1 INP1 INN1 OUT1 VCC GND CL_OPAMP params: iq=0.3m
+      X2 INP2 INN2 OUT2 VCC GND CL_OPAMP params: iq=0.3m
+      X3 INP3 INN3 OUT3 VCC GND CL_OPAMP params: iq=0.3m
+      X4 INP4 INN4 OUT4 VCC GND CL_OPAMP params: iq=0.3m
+      .ends CL_LM324
+
+TL072:
+  description: >-
+    Dual JFET-input op-amp, 3 MHz, supply 7-36 V total (e.g. +/-15 V or single 12 V with a mid-rail
+    reference); inputs must stay above V- + 4 V and below V+, output swings to ~1.5 V from each rail, DIP-8
+  kind: opamp
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: TL072CP
+  design: {voh_drop: 1.5, vol_drop: 1.5, vcc_min: 7.0, iq: 0.0028}
+  pins: *dual_opamp_pins
+  ratings:
+    - {type: voltage, pins: [8, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [2, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [3, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [5, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [6, 4], max: 36, min: -0.3}
+    - {type: current, pin: 1, max: 0.03}
+    - {type: current, pin: 7, max: 0.03}
+    - {type: power, max: 0.68}
+  decoupling:
+    - {pin: 8, gnd: 4, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_TL072"
+    models: |
+      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 fp=10 vohdrop=1.5 voldrop=1.5 iq=1m
+      Bg a VEE V = {aol}*V(INP,INN)
+      Rp a b 1k
+      Cp b VEE {1/(6283.2*fp)}
+      Bo o VEE V = max(min(V(b,VEE), V(VCC,VEE)-{vohdrop}), {voldrop})
+      Vso o o2 0
+      Ro o2 OUT 50
+      Bsup VCC VEE I = (max(i(Vso),0) + {iq})*0.5*(1+tanh(5*(V(VCC,VEE)-0.5)))
+      Rlk VCC VEE 1meg
+      .ends CL_OPAMP2
+      .subckt CL_TL072 OUTA INNA INPA VEE INPB INNB OUTB VCC
+      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=2e5 fp=15 vohdrop=1.5 voldrop=1.5 iq=1.4m
+      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=2e5 fp=15 vohdrop=1.5 voldrop=1.5 iq=1.4m
+      .ends CL_TL072
+    note: "single-pole model (3 MHz); input common-mode limit not modelled"
+
+NE5532:
+  description: >-
+    Dual low-noise op-amp, 10 MHz, supply 10-40 V total (+/-5 to +/-20 V); inputs within ~2 V of each
+    rail, output swings to ~2 V from each rail, drives 600 Ohm, DIP-8
+  kind: opamp
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: NE5532P
+  design: {voh_drop: 2.0, vol_drop: 2.0, vcc_min: 10.0, iq: 0.008}
+  pins: *dual_opamp_pins
+  ratings:
+    - {type: voltage, pins: [8, 4], max: 44, min: -0.3}
+    - {type: voltage, pins: [2, 4], max: 44, min: -0.3}
+    - {type: voltage, pins: [3, 4], max: 44, min: -0.3}
+    - {type: voltage, pins: [5, 4], max: 44, min: -0.3}
+    - {type: voltage, pins: [6, 4], max: 44, min: -0.3}
+    - {type: current, pin: 1, max: 0.038}
+    - {type: current, pin: 7, max: 0.038}
+    - {type: power, max: 1.0}
+  decoupling:
+    - {pin: 8, gnd: 4, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_NE5532"
+    models: |
+      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 fp=10 vohdrop=1.5 voldrop=1.5 iq=1m
+      Bg a VEE V = {aol}*V(INP,INN)
+      Rp a b 1k
+      Cp b VEE {1/(6283.2*fp)}
+      Bo o VEE V = max(min(V(b,VEE), V(VCC,VEE)-{vohdrop}), {voldrop})
+      Vso o o2 0
+      Ro o2 OUT 50
+      Bsup VCC VEE I = (max(i(Vso),0) + {iq})*0.5*(1+tanh(5*(V(VCC,VEE)-0.5)))
+      Rlk VCC VEE 1meg
+      .ends CL_OPAMP2
+      .subckt CL_NE5532 OUTA INNA INPA VEE INPB INNB OUTB VCC
+      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=1e5 fp=100 vohdrop=2.0 voldrop=2.0 iq=4m
+      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=1e5 fp=100 vohdrop=2.0 voldrop=2.0 iq=4m
+      .ends CL_NE5532
+    note: "single-pole model (10 MHz); input common-mode limit not modelled"
+
+MCP6002:
+  description: Dual rail-to-rail input/output CMOS op-amp, 1 MHz, single supply 1.8-6.0 V, DIP-8
+  kind: opamp
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: MCP6002-I/P
+  design: {voh_drop: 0.025, vol_drop: 0.025, vcc_min: 1.8, iq: 0.0002}
+  pins: *dual_opamp_pins
+  ratings:
+    - {type: voltage, pins: [8, 4], max: 7.0, min: -0.3}
+    - {type: voltage, pins: [2, 4], max: 7.0, min: -0.3}
+    - {type: voltage, pins: [3, 4], max: 7.0, min: -0.3}
+    - {type: voltage, pins: [5, 4], max: 7.0, min: -0.3}
+    - {type: voltage, pins: [6, 4], max: 7.0, min: -0.3}
+    - {type: current, pin: 1, max: 0.02}
+    - {type: current, pin: 7, max: 0.02}
+    - {type: power, max: 0.5}
+  decoupling:
+    - {pin: 8, gnd: 4, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_MCP6002"
+    models: |
+      .subckt CL_OPAMP2 INP INN OUT VCC VEE params: aol=1e5 fp=10 vohdrop=1.5 voldrop=1.5 iq=1m
+      Bg a VEE V = {aol}*V(INP,INN)
+      Rp a b 1k
+      Cp b VEE {1/(6283.2*fp)}
+      Bo o VEE V = max(min(V(b,VEE), V(VCC,VEE)-{vohdrop}), {voldrop})
+      Vso o o2 0
+      Ro o2 OUT 50
+      Bsup VCC VEE I = (max(i(Vso),0) + {iq})*0.5*(1+tanh(5*(V(VCC,VEE)-0.5)))
+      Rlk VCC VEE 1meg
+      .ends CL_OPAMP2
+      .subckt CL_MCP6002 OUTA INNA INPA VEE INPB INNB OUTB VCC
+      XA INPA INNA OUTA VCC VEE CL_OPAMP2 params: aol=1e5 fp=10 vohdrop=0.025 voldrop=0.025 iq=0.1m
+      XB INPB INNB OUTB VCC VEE CL_OPAMP2 params: aol=1e5 fp=10 vohdrop=0.025 voldrop=0.025 iq=0.1m
+      .ends CL_MCP6002
+
+# ------------------------------------------------------------ comparators
+# CL_CMP: open-collector output that sinks (up to ~16 mA, Vsat ~0.25 V at 4 mA) when IN- > IN+;
+# it needs a pull-up resistor. About 1 us response, no hysteresis (add it with resistors).
+.cmp_models: &cmp_models |
+  .subckt CL_CMP INP INN OUT VCC GND
+  Bc c GND V = 0.5*(1+tanh(2000*(V(INN,GND)-V(INP,GND))))
+  Rc c cd 1k
+  Ccd cd GND 1n
+  Bout OUT GND I = V(cd)*0.016*tanh(V(OUT,GND)/0.96)
+  Rlk OUT GND 100meg
+  Bsup VCC GND I = 0.4m*0.5*(1+tanh(5*(V(VCC,GND)-0.5)))
+  .ends CL_CMP
+
+LM393:
+  description: Dual comparator, open-collector outputs (pull-up needed), single supply 2-36 V, inputs include ground, DIP-8
+  kind: comparator
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: LM393P
+  design: {iq: 0.0008, i_sink: 0.016}
+  pins:
+    1: {name: OUTA, type: output}
+    2: {name: INNA, type: input}
+    3: {name: INPA, type: input}
+    4: {name: GND, type: power_in}
+    5: {name: INPB, type: input}
+    6: {name: INNB, type: input}
+    7: {name: OUTB, type: output}
+    8: {name: VCC, type: power_in}
+  ratings:
+    - {type: voltage, pins: [8, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [1, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [7, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [2, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [3, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [5, 4], max: 36, min: -0.3}
+    - {type: voltage, pins: [6, 4], max: 36, min: -0.3}
+    - {type: current, pin: 1, max: 0.02}
+    - {type: current, pin: 7, max: 0.02}
+    - {type: power, max: 0.7}
+  decoupling:
+    - {pin: 8, gnd: 4, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_LM393"
+    models: |
+      .subckt CL_CMP INP INN OUT VCC GND
+      Bc c GND V = 0.5*(1+tanh(2000*(V(INN,GND)-V(INP,GND))))
+      Rc c cd 1k
+      Ccd cd GND 1n
+      Bout OUT GND I = V(cd)*0.016*tanh(V(OUT,GND)/0.96)
+      Rlk OUT GND 100meg
+      Bsup VCC GND I = 0.4m*0.5*(1+tanh(5*(V(VCC,GND)-0.5)))
+      .ends CL_CMP
+      .subckt CL_LM393 OUTA INNA INPA GND INPB INNB OUTB VCC
+      XA INPA INNA OUTA VCC GND CL_CMP
+      XB INPB INNB OUTB VCC GND CL_CMP
+      .ends CL_LM393
+
+LM339:
+  description: Quad comparator, open-collector outputs (pull-up needed), single supply 2-36 V, inputs include ground, DIP-14
+  kind: comparator
+  package: dip14
+  footprint: Package_DIP:DIP-14_W7.62mm
+  mpn: LM339N
+  design: {iq: 0.0008, i_sink: 0.016}
+  pins:
+    1: {name: OUT2, type: output}
+    2: {name: OUT1, type: output}
+    3: {name: VCC, type: power_in}
+    4: {name: INN1, type: input}
+    5: {name: INP1, type: input}
+    6: {name: INN2, type: input}
+    7: {name: INP2, type: input}
+    8: {name: INN3, type: input}
+    9: {name: INP3, type: input}
+    10: {name: INN4, type: input}
+    11: {name: INP4, type: input}
+    12: {name: GND, type: power_in}
+    13: {name: OUT4, type: output}
+    14: {name: OUT3, type: output}
+  ratings:
+    - {type: voltage, pins: [3, 12], max: 36, min: -0.3}
+    - {type: voltage, pins: [1, 12], max: 36, min: -0.3}
+    - {type: voltage, pins: [2, 12], max: 36, min: -0.3}
+    - {type: voltage, pins: [13, 12], max: 36, min: -0.3}
+    - {type: voltage, pins: [14, 12], max: 36, min: -0.3}
+    - {type: current, pin: 1, max: 0.02}
+    - {type: current, pin: 2, max: 0.02}
+    - {type: current, pin: 13, max: 0.02}
+    - {type: current, pin: 14, max: 0.02}
+    - {type: power, max: 1.0}
+  decoupling:
+    - {pin: 3, gnd: 12, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} {9} {10} {11} {12} {13} {14} CL_LM339"
+    models: |
+      .subckt CL_CMP INP INN OUT VCC GND
+      Bc c GND V = 0.5*(1+tanh(2000*(V(INN,GND)-V(INP,GND))))
+      Rc c cd 1k
+      Ccd cd GND 1n
+      Bout OUT GND I = V(cd)*0.016*tanh(V(OUT,GND)/0.96)
+      Rlk OUT GND 100meg
+      Bsup VCC GND I = 0.4m*0.5*(1+tanh(5*(V(VCC,GND)-0.5)))
+      .ends CL_CMP
+      .subckt CL_LM339 OUT2 OUT1 VCC INN1 INP1 INN2 INP2 INN3 INP3 INN4 INP4 GND OUT4 OUT3
+      X1 INP1 INN1 OUT1 VCC GND CL_CMP
+      X2 INP2 INN2 OUT2 VCC GND CL_CMP
+      X3 INP3 INN3 OUT3 VCC GND CL_CMP
+      X4 INP4 INN4 OUT4 VCC GND CL_CMP
+      .ends CL_LM339
+
+# ------------------------------------------------------------------ timers
+TLC555:
+  description: CMOS 555 timer, DIP-8, 2-15 V, 170 uA, rail-to-rail output (sources ~10 mA, sinks ~100 mA)
+  kind: ic
+  package: dip8
+  footprint: Package_DIP:DIP-8_W7.62mm
+  mpn: TLC555CP
+  design: {voh_drop: 0.2, vcc_min: 2.0, iq: 0.00017}
+  pins:
+    1: {name: GND, type: power_in}
+    2: {name: TRIG, type: input}
+    3: {name: OUT, type: output}
+    4: {name: RESET, type: input}
+    5: {name: CTRL, type: passive, optional: true}
+    6: {name: THR, type: input}
+    7: {name: DIS, type: passive, optional: true}
+    8: {name: VCC, type: power_in}
+  ratings:
+    - {type: voltage, pins: [8, 1], max: 18, min: -0.3}
+    - {type: voltage, pins: [2, 1], max: 18, min: -0.3}
+    - {type: voltage, pins: [6, 1], max: 18, min: -0.3}
+    - {type: voltage, pins: [4, 1], max: 18, min: -0.3}
+    - {type: current, pin: 3, max: 0.1}
+    - {type: power, max: 0.5}
+  decoupling:
+    - {pin: 8, gnd: 1, min: 1.0e-7}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} {4} {5} {6} {7} {8} CL_TLC555"
+    models: |
+      .subckt CL_TLC555 GND TRIG OUT RESET CTRL THR DIS VCC
+      * comparator thresholds from a high-impedance internal divider
+      Rd1 VCC CTRL 100k
+      Rd2 CTRL lo 100k
+      Rd3 lo GND 100k
+      Bs s GND V = 0.5*(1+tanh(200*(V(lo)-V(TRIG))))
+      Br r GND V = min(0.5*(1+tanh(200*(V(THR)-V(CTRL)))) + 0.5*(1+tanh(50*(0.7-V(RESET,GND)))), 1)
+      Bc c GND V = V(s) - V(r)*(1-V(s))
+      Vone one GND 1
+      Sq one q c GND CL_SW555C
+      .model CL_SW555C SW(VT=0 VH=0.5 RON=1 ROFF=1e9)
+      Rq q GND 1meg
+      Rm q qm 1k
+      Cm qm GND 10p
+      * rail-to-rail output (~15 ohm)
+      Bo o GND V = 0.5*(1+tanh(50*(V(qm,GND)-0.5)))*V(VCC,GND)
+      Vso o o2 0
+      Ro o2 OUT 15
+      Bsup VCC GND I = (max(i(Vso),0) + 170u)*0.5*(1+tanh(5*(V(VCC,GND)-0.5)))
+      Rlk VCC GND 10meg
+      Bdis DIS GND I = 0.5*(1+tanh(50*(0.5-V(qm,GND))))*V(DIS,GND)/15
+      .ends CL_TLC555
+
+# --------------------------------------------------------- linear regulators
+# Fixed regulators use CL_REG (from LM2940CT-5.0 above): Vout with its datasheet tolerance,
+# dropout and quiescent current. Pinouts: 78xx TO-220 1=IN 2=GND 3=OUT; 78Lxx / LP2950 TO-92
+# 1=OUT 2=GND 3=IN.
+.reg_models: &reg_models |
+  .subckt CL_REG IN GND OUT params: vout=5 vdrop=0.5 iq=5m
+  Bv v GND V = max(min({vout}, V(IN,GND)-{vdrop}), 0)
+  Vs v v2 0
+  Rout v2 OUT 0.02
+  Bi IN GND I = (max(i(Vs),0) + {iq})*0.5*(1+tanh(5*(V(IN,GND)-0.5)))
+  Rleak IN GND 1meg
+  .ends CL_REG
+.to220_reg_pins: &to220_reg_pins
+  1: {name: IN, type: power_in}
+  2: {name: GND, type: power_in}
+  3: {name: OUT, type: power_out}
+.to92_reg_pins: &to92_reg_pins
+  1: {name: OUT, type: power_out}
+  2: {name: GND, type: power_in}
+  3: {name: IN, type: power_in}
+.l78_decoupling: &l78_decoupling
+  - {pin: 1, gnd: 2, min: 3.3e-7}
+  - {pin: 3, gnd: 2, min: 1.0e-7}
+.l78l_decoupling: &l78l_decoupling
+  - {pin: 3, gnd: 2, min: 3.3e-7}
+  - {pin: 1, gnd: 2, min: 1.0e-7}
+
+L7808CV:
+  description: 8 V 1.5 A linear regulator (2 V dropout), TO-220
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: L7808CV
+  design: {vout: 8.0, dropout: 2.0, iq: 0.005}
+  pins: *to220_reg_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 35, min: -0.3}
+    - {type: current, pin: 3, max: 1.5}
+    - {type: power, max: 1.6}
+  decoupling: *l78_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=2 iq=5m"
+    params: {vout: {value: 8.0, tolerance: 0.04}}
+    models: *reg_models
+
+L7809CV:
+  description: 9 V 1.5 A linear regulator (2 V dropout), TO-220
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: L7809CV
+  design: {vout: 9.0, dropout: 2.0, iq: 0.005}
+  pins: *to220_reg_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 35, min: -0.3}
+    - {type: current, pin: 3, max: 1.5}
+    - {type: power, max: 1.6}
+  decoupling: *l78_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=2 iq=5m"
+    params: {vout: {value: 9.0, tolerance: 0.04}}
+    models: *reg_models
+
+L7812CV:
+  description: 12 V 1.5 A linear regulator (2 V dropout), TO-220
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: L7812CV
+  design: {vout: 12.0, dropout: 2.0, iq: 0.005}
+  pins: *to220_reg_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 35, min: -0.3}
+    - {type: current, pin: 3, max: 1.5}
+    - {type: power, max: 1.6}
+  decoupling: *l78_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=2 iq=5m"
+    params: {vout: {value: 12.0, tolerance: 0.04}}
+    models: *reg_models
+
+L7815CV:
+  description: 15 V 1.5 A linear regulator (2 V dropout), TO-220
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: L7815CV
+  design: {vout: 15.0, dropout: 2.0, iq: 0.005}
+  pins: *to220_reg_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 35, min: -0.3}
+    - {type: current, pin: 3, max: 1.5}
+    - {type: power, max: 1.6}
+  decoupling: *l78_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=2 iq=5m"
+    params: {vout: {value: 15.0, tolerance: 0.04}}
+    models: *reg_models
+
+L7824CV:
+  description: 24 V 1.5 A linear regulator (2 V dropout), TO-220
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: L7824CV
+  design: {vout: 24.0, dropout: 2.0, iq: 0.005}
+  pins: *to220_reg_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 40, min: -0.3}
+    - {type: current, pin: 3, max: 1.5}
+    - {type: power, max: 1.6}
+  decoupling: *l78_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=2 iq=5m"
+    params: {vout: {value: 24.0, tolerance: 0.04}}
+    models: *reg_models
+
+L78L33ACZ:
+  description: 3.3 V 100 mA linear regulator (1.7 V dropout), TO-92 (1=OUT 2=GND 3=IN)
+  kind: regulator
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: L78L33ACZ
+  design: {vout: 3.3, dropout: 1.7, iq: 0.003}
+  pins: *to92_reg_pins
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 30, min: -0.3}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.6}
+  decoupling: *l78l_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {3} {2} {1} CL_REG params: vout={p:vout} vdrop=1.7 iq=3m"
+    params: {vout: {value: 3.3, tolerance: 0.05}}
+    models: *reg_models
+
+L78L09ACZ:
+  description: 9 V 100 mA linear regulator (1.7 V dropout), TO-92 (1=OUT 2=GND 3=IN)
+  kind: regulator
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: L78L09ACZ
+  design: {vout: 9.0, dropout: 1.7, iq: 0.003}
+  pins: *to92_reg_pins
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 30, min: -0.3}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.6}
+  decoupling: *l78l_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {3} {2} {1} CL_REG params: vout={p:vout} vdrop=1.7 iq=3m"
+    params: {vout: {value: 9.0, tolerance: 0.05}}
+    models: *reg_models
+
+L78L12ACZ:
+  description: 12 V 100 mA linear regulator (1.7 V dropout), TO-92 (1=OUT 2=GND 3=IN)
+  kind: regulator
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: L78L12ACZ
+  design: {vout: 12.0, dropout: 1.7, iq: 0.003}
+  pins: *to92_reg_pins
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 35, min: -0.3}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.6}
+  decoupling: *l78l_decoupling
+  spice:
+    type: subckt
+    line: "X{ref} {3} {2} {1} CL_REG params: vout={p:vout} vdrop=1.7 iq=3m"
+    params: {vout: {value: 12.0, tolerance: 0.05}}
+    models: *reg_models
+
+LD1117V33:
+  description: 3.3 V 800 mA low-dropout regulator (1.1 V dropout), input up to 15 V, TO-220 (1=GND 2=OUT 3=IN)
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: LD1117V33
+  design: {vout: 3.3, dropout: 1.1, iq: 0.005}
+  pins:
+    1: {name: GND, type: power_in}
+    2: {name: OUT, type: power_out}
+    3: {name: IN, type: power_in}
+  ratings:
+    - {type: voltage, pins: [3, 1], max: 15, min: -0.3}
+    - {type: current, pin: 2, max: 0.8}
+    - {type: power, max: 1.6}
+  decoupling:
+    - {pin: 3, gnd: 1, min: 1.0e-7}
+    - {pin: 2, gnd: 1, min: 1.0e-5}
+  spice:
+    type: subckt
+    line: "X{ref} {3} {1} {2} CL_REG params: vout={p:vout} vdrop=1.1 iq=5m"
+    params: {vout: {value: 3.3, tolerance: 0.02}}
+    models: *reg_models
+
+LD1117V50:
+  description: 5 V 800 mA low-dropout regulator (1.1 V dropout), input up to 15 V, TO-220 (1=GND 2=OUT 3=IN)
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: LD1117V50
+  design: {vout: 5.0, dropout: 1.1, iq: 0.005}
+  pins:
+    1: {name: GND, type: power_in}
+    2: {name: OUT, type: power_out}
+    3: {name: IN, type: power_in}
+  ratings:
+    - {type: voltage, pins: [3, 1], max: 15, min: -0.3}
+    - {type: current, pin: 2, max: 0.8}
+    - {type: power, max: 1.6}
+  decoupling:
+    - {pin: 3, gnd: 1, min: 1.0e-7}
+    - {pin: 2, gnd: 1, min: 1.0e-5}
+  spice:
+    type: subckt
+    line: "X{ref} {3} {1} {2} CL_REG params: vout={p:vout} vdrop=1.1 iq=5m"
+    params: {vout: {value: 5.0, tolerance: 0.02}}
+    models: *reg_models
+
+LM3940IT-3.3:
+  description: 5 V to 3.3 V 1 A low-dropout regulator (0.5 V dropout), input 4.5-7.5 V only, TO-220 (1=IN 2=GND 3=OUT)
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: LM3940IT-3.3
+  design: {vout: 3.3, dropout: 0.5, iq: 0.01}
+  pins: *to220_reg_pins
+  ratings:
+    - {type: voltage, pins: [1, 2], max: 7.5, min: -0.3}
+    - {type: current, pin: 3, max: 1.0}
+    - {type: power, max: 1.6}
+  decoupling:
+    - {pin: 1, gnd: 2, min: 4.7e-7}
+    - {pin: 3, gnd: 2, min: 3.3e-5}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_REG params: vout={p:vout} vdrop=0.5 iq=10m"
+    params: {vout: {value: 3.3, tolerance: 0.03}}
+    models: *reg_models
+
+LP2950CZ-3.3:
+  description: 3.3 V 100 mA low-dropout regulator (0.38 V dropout), input up to 30 V, 75 uA quiescent, TO-92 (1=OUT 2=GND 3=IN)
+  kind: regulator
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: LP2950CZ-3.3
+  design: {vout: 3.3, dropout: 0.38, iq: 0.000075}
+  pins: *to92_reg_pins
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 30, min: -0.3}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.6}
+  decoupling:
+    - {pin: 3, gnd: 2, min: 1.0e-6}
+    - {pin: 1, gnd: 2, min: 1.0e-6}
+  spice:
+    type: subckt
+    line: "X{ref} {3} {2} {1} CL_REG params: vout={p:vout} vdrop=0.38 iq=75u"
+    params: {vout: {value: 3.3, tolerance: 0.01}}
+    models: *reg_models
+
+LP2950CZ-5.0:
+  description: 5 V 100 mA low-dropout regulator (0.38 V dropout), input up to 30 V, 75 uA quiescent, TO-92 (1=OUT 2=GND 3=IN)
+  kind: regulator
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: LP2950CZ-5.0
+  design: {vout: 5.0, dropout: 0.38, iq: 0.000075}
+  pins: *to92_reg_pins
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 30, min: -0.3}
+    - {type: current, pin: 1, max: 0.1}
+    - {type: power, max: 0.6}
+  decoupling:
+    - {pin: 3, gnd: 2, min: 1.0e-6}
+    - {pin: 1, gnd: 2, min: 1.0e-6}
+  spice:
+    type: subckt
+    line: "X{ref} {3} {2} {1} CL_REG params: vout={p:vout} vdrop=0.38 iq=75u"
+    params: {vout: {value: 5.0, tolerance: 0.01}}
+    models: *reg_models
+
+MCP1700-3302E/TO:
+  description: 3.3 V 250 mA low-dropout regulator (0.18 V dropout), input 2.3-6.0 V only, 1.6 uA quiescent, TO-92 (1=GND 2=IN 3=OUT)
+  kind: regulator
+  package: to92
+  footprint: Package_TO_SOT_THT:TO-92_Inline
+  mpn: MCP1700-3302E/TO
+  design: {vout: 3.3, dropout: 0.18, iq: 1.6e-06}
+  pins:
+    1: {name: GND, type: power_in}
+    2: {name: IN, type: power_in}
+    3: {name: OUT, type: power_out}
+  ratings:
+    - {type: voltage, pins: [2, 1], max: 6.5, min: -0.3}
+    - {type: current, pin: 3, max: 0.25}
+    - {type: power, max: 0.5}
+  decoupling:
+    - {pin: 2, gnd: 1, min: 1.0e-6}
+    - {pin: 3, gnd: 1, min: 1.0e-6}
+  spice:
+    type: subckt
+    line: "X{ref} {2} {1} {3} CL_REG params: vout={p:vout} vdrop=0.18 iq=1.6u"
+    params: {vout: {value: 3.3, tolerance: 0.02}}
+    models: *reg_models
+
+LM317T:
+  description: >-
+    Adjustable 1.25-37 V 1.5 A linear regulator: Vout = 1.25 V x (1 + R2/R1) + 50 uA x R2 with R1 from
+    OUT to ADJ (240 Ohm typical) and R2 from ADJ to GND; needs >= 10 mA load (R1 provides it with
+    120-240 Ohm), 2 V dropout, TO-220 (1=ADJ 2=OUT 3=IN)
+  kind: regulator
+  package: to220v
+  footprint: Package_TO_SOT_THT:TO-220-3_Vertical
+  mpn: LM317T
+  design: {vref: 1.25, dropout: 2.0, iadj: 5.0e-05}
+  pins:
+    1: {name: ADJ, type: input}
+    2: {name: OUT, type: power_out}
+    3: {name: IN, type: power_in}
+  ratings:
+    - {type: voltage, pins: [3, 2], max: 40, min: -0.3}
+    - {type: current, pin: 2, max: 1.5}
+    - {type: power, max: 1.6}
+  spice:
+    type: subckt
+    line: "X{ref} {1} {2} {3} CL_LM317 params: vref={p:vref}"
+    params: {vref: {value: 1.25, tolerance: 0.04}}
+    models: |
+      .subckt CL_LM317 ADJ OUT IN params: vref=1.25
+      * OUT - ADJ held at vref while IN - OUT >= 2 V; the output current comes from IN
+      Bv v ADJ V = max(min({vref}, V(IN,ADJ)-2.0), 0)
+      Vs v v2 0
+      Rout v2 OUT 0.01
+      Bcomp IN ADJ I = i(Vs)
+      Iadj IN ADJ 50u
+      Rleak IN OUT 10meg
+      .ends CL_LM317

@@ -42,7 +42,7 @@ def shopping_items(
 ) -> list[Item]:
     items: list[Item] = []
     for row in bom_rows(nl, db):
-        pd = db.get(row["part"])
+        pd = db.resolve(row["part"], row["value"])
         qty = _spare(row["qty"] * boards, pd.kind if pd else "", spares)
         items.append(
             Item(
@@ -59,7 +59,7 @@ def shopping_items(
     # IC sockets for DIP packages (the build guide solders sockets, not the ICs)
     dips: dict[str, int] = {}
     for c in nl.components.values():
-        pd = db.get(c.part_key)
+        pd = db.resolve(c.part_key, c.value)
         if pd and pd.package.startswith("dip"):
             dips[pd.package] = dips.get(pd.package, 0) + 1
     for pkg, n in sorted(dips.items()):

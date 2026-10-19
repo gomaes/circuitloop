@@ -151,16 +151,29 @@ def choose(cands: list[PartDef], check: Callable[[PartDef], str | None], what: s
 
 
 def pick_resistor(
-    cx: Ctx, value: float, power: float, voltage: float = 0.0, what: str = "resistor"
+    cx: Ctx,
+    value: float,
+    power: float,
+    voltage: float = 0.0,
+    what: str = "resistor",
+    max_tol: float = 0.01,
 ) -> PartDef:
+    """Smallest adequate resistor; among those meeting max_tol the loosest (cheapest) tolerance, so a
+    +/-1 % metal film is used by default and 0.1 % precision parts only when asked for."""
+
     def ok(pd: PartDef) -> str | None:
         if not value_fits(pd, value):
             return "value out of range"
+        pd = pd.for_value(value)
         return check_power(pd, cx, power) or check_voltage(pd, cx, voltage)
 
-    return choose(
-        cx.of_kind("resistor"), ok, what, key=lambda p: (p.tolerance or 1, rating_max(p, "power") or 0)
-    )
+    def order(p: PartDef):
+        tol = p.tolerance or 1
+        # 1/4 W is the standard body; smaller ones are only chosen when nothing else differs
+        power = max(rating_max(p, "power") or 0, 0.25)
+        return (tol > max_tol + 1e-12, -tol if tol <= max_tol + 1e-12 else tol, power)
+
+    return choose(cx.of_kind("resistor"), ok, what, key=order)
 
 
 def pick_capacitor(
@@ -172,23 +185,28 @@ def pick_capacitor(
     i_rms: float = 0.0,
     what: str = "capacitor",
     prefer: str = "ceramic",
+    keys: tuple[str, ...] | None = None,
 ) -> PartDef:
     """prefer: 'ceramic' (decoupling), 'precise' (timing: tightest tolerance), 'low_esr' (power)."""
 
     def ok(pd: PartDef) -> str | None:
         if not value_fits(pd, value):
             return f"{fmt_si(value, 'F')} outside its value range"
+        pd = pd.for_value(value)
         return check_voltage(pd, cx, v_work, v_abs) or (check_current(pd, cx, rms=i_rms) if i_rms else None)
 
     def order(pd: PartDef):
         vmax = rating_max(pd, "voltage") or 0
-        if prefer == "precise":  # timing: tight tolerance, stable film dielectric
+        if prefer == "precise":  # timing: tight tolerance, stable film / C0G dielectric
             return (pd.tolerance or 1, "film" not in pd.description.lower(), vmax)
         if prefer == "low_esr":
-            return (pd.design.get("esr", 0 if pd.kind == "capacitor" else 1), vmax)
-        return (pd.kind != "capacitor", "FILM" in pd.key, vmax)
+            return (pd.for_value(value).design.get("esr", 0 if pd.kind == "capacitor" else 1), vmax)
+        # decoupling: X7R ceramic first (not the costlier C0G / film / precision types)
+        special = "FILM" in pd.key or "C0G" in pd.key or (pd.tolerance or 1) < 0.1
+        return (pd.kind != "capacitor", special, vmax)
 
-    return choose(cx.of_kind(*kinds), ok, what, key=order)
+    cands = [p for p in cx.of_kind(*kinds) if keys is None or p.key in keys]
+    return choose(cands, ok, what, key=order)
 
 
 def place_cap(
@@ -298,11 +316,20 @@ def supply_front_end(
                 or _reverse_ok(pd, v_rev)
             )
 
+        # lowest Vf wins, but among diodes within 0.1 V of it the one with the most reverse-voltage
+        # headroom: a Schottky's leakage under the reversed supply rises steeply towards its rating
+        usable = [p for p in cx.of_kind("diode") if ok(p) is None]
+        vf_best = min((p.design["vf"] for p in usable), default=9.0)
         dpd = choose(
             cx.of_kind("diode"),
             ok,
             f"reverse-polarity diode for {fmt_si(i_in, 'A')}",
-            key=lambda p: (p.design.get("vf", 9), rating_max(p, "current") or 0),
+            key=lambda p: (
+                p.design.get("vf", 9) > vf_best + 0.1,
+                -(rating_max(p, "voltage") or 0),
+                rating_max(p, "current") or 0,
+                p.design.get("vf", 9),
+            ),
         )
         d = w.add(dpd.key, comment=f"reverse polarity: series diode (Vf ~{dpd.design['vf']:g} V)")
         w.connect(net, f"{d}.A")

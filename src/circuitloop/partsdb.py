@@ -5,6 +5,11 @@ Search path, later entries override earlier ones with the same key:
   2. ``$XDG_CONFIG_HOME/circuitloop/parts/*.yaml``
   3. ``<project>/parts/*.yaml``
 Unregistered parts are an ERC error: every rating used for derating comes from here.
+
+A part with a value range can list ``sizes``: the body (package/footprint), datasheet figures and
+ratings that change with the value, e.g. an electrolytic family whose can grows from 5 mm to 16 mm.
+``db.resolve(key, value)`` returns the part as it applies to one value; everything that looks at a
+placed component (ratings, layout, BOM, SPICE) goes through it.
 """
 
 from __future__ import annotations
@@ -39,6 +44,8 @@ Kind = Literal[
     "fuse",
     "inductor",
     "connector",
+    "bridge",
+    "comparator",
 ]
 
 # reference-designator prefix per kind (R1, C3, U2, ...)
@@ -59,6 +66,8 @@ REF_PREFIX = {
     "fuse": "F",
     "inductor": "L",
     "connector": "J",
+    "bridge": "D",
+    "comparator": "U",
 }
 
 
@@ -136,6 +145,19 @@ class Decoupling(_M):
     min: float = Field(gt=0, description="Minimum capacitance between pin and gnd [F]")
 
 
+class Size(_M):
+    """Value-dependent data of a part family; the first entry whose value_max covers the value applies."""
+
+    value_max: float = Field(gt=0)
+    package: str | None = None
+    footprint: str | None = None
+    mpn: str | None = None
+    design: dict[str, float] = Field(default_factory=dict, description="overrides the part's design figures")
+    ratings: list[Rating] | None = Field(
+        None, description="replace the part's ratings of the same type (e.g. a ripple-current rating per can)"
+    )
+
+
 class PartDef(_M):
     key: str = ""
     description: str
@@ -162,6 +184,10 @@ class PartDef(_M):
         "(e.g. vf, esr, ciss, rds_on, dropout, vout, vref)",
     )
     spice: SpiceDef | None = None
+    sizes: list[Size] = Field(
+        default_factory=list,
+        description="value-dependent package/footprint/design figures/ratings (ascending value_max)",
+    )
     source: str = ""
 
     @model_validator(mode="after")
@@ -177,7 +203,20 @@ class PartDef(_M):
         for d in self.decoupling:
             if d.pin not in nums or d.gnd not in nums:
                 raise ValueError("decoupling refers to unknown pin")
+        if self.sizes:
+            limits = [z.value_max for z in self.sizes]
+            if limits != sorted(limits):
+                raise ValueError("sizes must be in ascending value_max order")
+            if self.value != "required":
+                raise ValueError("sizes need value: required")
+            if self.value_max is None:
+                self.value_max = limits[-1]
+            elif self.value_max > limits[-1] * (1 + 1e-9):
+                raise ValueError("value_max is above the largest size")
         if self.spice and self.spice.line:
+            for name in re.findall(r"\{d:(\w+)\}", self.spice.line):
+                if name not in self.design and not (self.sizes and all(name in z.design for z in self.sizes)):
+                    raise ValueError(f"spice line uses design figure {{d:{name}}} that is not defined")
             for name in re.findall(r"\{p:(\w+)\}", self.spice.line):
                 if name not in self.spice.params:
                     raise ValueError(f"spice line uses undefined parameter {{p:{name}}}")
@@ -193,7 +232,33 @@ class PartDef(_M):
         return None
 
     def mpn_for(self, value: str | None) -> str:
-        return self.mpn.replace("{value}", value or "")
+        return self.for_value(value).mpn.replace("{value}", value or "")
+
+    def _size_ratings(self, size: Size) -> list[Rating]:
+        if size.ratings is None:
+            return self.ratings
+        types = {r.type for r in size.ratings}
+        return [r for r in self.ratings if r.type not in types] + list(size.ratings)
+
+    def for_value(self, value: str | float | None) -> PartDef:
+        """This part as it applies to one value (sizes resolved); itself when it has no sizes."""
+        if not self.sizes or value is None:
+            return self
+        try:
+            v = parse_value(value) if isinstance(value, str) else float(value)
+        except ValueError:
+            return self
+        size = next((z for z in self.sizes if v <= z.value_max * (1 + 1e-9)), self.sizes[-1])
+        return self.model_copy(
+            update={
+                "package": size.package or self.package,
+                "footprint": size.footprint or self.footprint,
+                "mpn": size.mpn or self.mpn,
+                "design": {**self.design, **size.design},
+                "ratings": self._size_ratings(size),
+                "sizes": [],
+            }
+        )
 
 
 class PartsDB:
@@ -209,6 +274,11 @@ class PartsDB:
 
     def get(self, key: str | None) -> PartDef | None:
         return self.parts.get(key) if key else None
+
+    def resolve(self, key: str | None, value: str | None) -> PartDef | None:
+        """The part as it applies to a placed component with this value (see PartDef.sizes)."""
+        pd = self.get(key)
+        return pd.for_value(value) if pd is not None else None
 
     def keys(self) -> list[str]:
         return sorted(self.parts)
@@ -237,6 +307,8 @@ def load_file(path: Path) -> dict[str, PartDef]:
         raise PartsDBError(f"{path}: top level must be a mapping of part keys")
     out: dict[str, PartDef] = {}
     for key, body in raw.items():
+        if str(key).startswith("."):  # template holding YAML anchors (e.g. `.ecap_sizes: &d5 {...}`)
+            continue
         if not re.fullmatch(r"[A-Za-z0-9_./\-]+", str(key)):
             raise PartsDBError(f"{path}: invalid part key {key!r}")
         try:
