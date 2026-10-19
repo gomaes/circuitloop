@@ -29,7 +29,7 @@ switching converter (C4, ~2 min).
 | model | result | wall | agent | verify | agent calls | fix attempts | stuck at | new tokens | cache reads | output tokens | cost |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | haiku | pass | 8.9 min | 5.5 min | 100 s | 5 | 1 | G7 ripple at v_max | 334 k | 2.80 M | 68 k | $0.12 |
-| sonnet | pass | 5.5 min | 3.0 min | 55 s | 5 | 1 | G3: input cap 35 V part at 30 V (> 28 V derated) | 170 k | 1.49 M | 23 k | $1.06 |
+| sonnet | pass | 5.5 min | 3.0 min | 55 s | 5 | 1 | G3: input cap 35 V part at 30 V (> 28 V derated) | 193 k | 1.49 M | 23 k | $1.06 |
 | opus | pass | 7.2 min | 4.1 min | 60 s | 4 | 0 | — | 183 k | 1.53 M | 24 k | $2.06 |
 
 All three pass. Haiku needs about twice the tokens (3× the output) of the larger models but is
