@@ -53,3 +53,16 @@ One run per model: these are single samples, not averages.
   the agent fixed it in one attempt.
 - **C1** — the LDO calculator correctly found no registered regulator with margin (LD1117
   dropout at 4.75 V input after the reverse-polarity diode); the agent used an LM3940 by hand.
+
+## After the fixes (development runs, not blind)
+
+Both circuitloop defects were fixed in `b9f722b` (op-amp wind-up; calculators now bring load
+nets out to a connector). C3 was then run again with Haiku — it is no longer blind, so this
+only shows that the defect was the cause:
+
+| id | result | wall | agent | verify | agent calls | fix attempts | stuck at | new tokens | cache reads | cost |
+|---|---|---|---|---|---|---|---|---|---|---|
+| C3 (rerun) | **pass** | 11.6 min | 10.8 min | 33 s | 3 | 2 | G3 once in Phase 1, G3/G4/G7 once after protection | 324 k | 3.57 M | $0.24 |
+
+C2 (contradictory fault limits written by the spec writer) is not fixed: automatic relaxation
+covers tolerance windows only, and fault expectations would need a separate consistency check.
