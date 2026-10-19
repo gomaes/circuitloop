@@ -12,6 +12,10 @@ whether a design passes.
     Phase 5  outputs (netlist, schematic, layout, BOM, build guide, report)
 
 Every attempt is recorded under runs/<timestamp>/iter_NN/.
+
+When Phase 4 fails only because a tolerance window is narrower than the registered parts allow
+(feasibility.py), the run stops early with EXIT_SPEC_INFEASIBLE and writes the smallest relaxation the
+current design passes to relaxation.json; relax.py applies it and continues from that design.
 """
 
 from __future__ import annotations
@@ -28,11 +32,12 @@ import yaml
 from rich.console import Console
 from rich.markup import escape
 
-from . import EXIT_DESIGN_FAILED, EXIT_ENV_ERROR, EXIT_OK, EXIT_TAMPERED, __version__
+from . import EXIT_DESIGN_FAILED, EXIT_ENV_ERROR, EXIT_OK, EXIT_SPEC_INFEASIBLE, EXIT_TAMPERED, __version__
 from .agents import AgentBackend, AgentTask
 from .budget import Budget, records
 from .catalog import render_catalog
 from .config import Config
+from .feasibility import Feasibility, assess
 from .gates import VerifyContext, VerifyOutcome, verify
 from .integrity import Integrity, make_readonly
 from .partsdb import PartsDB, PartsDBError, load_db
@@ -60,7 +65,7 @@ class RunState:
     project: str
     agent: str
     version: str = __version__
-    status: str = "running"  # running | passed | failed | tampered | error
+    status: str = "running"  # running | passed | failed | infeasible | tampered | error
     message: str = ""
     started: str = ""
     finished: str = ""
@@ -69,6 +74,7 @@ class RunState:
     iterations: list = field(default_factory=list)
     final_design: str | None = None
     outputs: list = field(default_factory=list)
+    carried_from: str | None = None  # run whose design this run continues (after a spec relaxation)
 
     @classmethod
     def load(cls, run_dir: Path) -> RunState:
@@ -107,6 +113,8 @@ class Orchestrator:
         self.integrity = Integrity()
         self.state: RunState
         self.run_dir: Path
+        self._feasibility: tuple[Path, VerificationReport, Feasibility] | None = None
+        self._spec_issue: tuple[Path, str] | None = None
 
     # ------------------------------------------------------------------ setup
     def _log(self, msg: str) -> None:
@@ -178,14 +186,21 @@ class Orchestrator:
         self.state.save()
 
     # ------------------------------------------------------------- public API
-    def run(self, start: str = "design", run_dir: Path | None = None) -> int:
-        start = PHASE_ALIASES.get(start, start)
+    def run(
+        self, start: str = "design", run_dir: Path | None = None, carry: tuple[Path, Path] | None = None
+    ) -> int:
+        """carry = (previous run, its design): start a new run at Phase 4 with that design, keeping the
+        previous run's Phase 1-3 results (used after a spec relaxation, which only widens limits)."""
+        start = "reverify" if carry is not None else PHASE_ALIASES.get(start, start)
         if start not in PHASES:
             self._log(f"[red]unknown phase '{start}'[/] (choose from {', '.join(PHASES)})")
             return EXIT_ENV_ERROR
         try:
             self._load()
-            if start == "design":
+            if carry is not None:
+                self._new_run()
+                self._carry_over(*carry)
+            elif start == "design":
                 self._new_run()
             else:
                 rd = run_dir or latest_run(self.project)
@@ -220,11 +235,27 @@ class Orchestrator:
                 self.state.finished = datetime.now().isoformat(timespec="seconds")
                 self.state.save()
 
+    def _carry_over(self, prev: Path, design: Path) -> None:
+        old = RunState.load(prev)
+        if old.phases.get("design", {}).get("status") != "passed" or not (prev / "baseline.json").is_file():
+            raise PipelineStop(EXIT_ENV_ERROR, f"cannot continue from {prev}: its Phase 1 did not pass")
+        shutil.copy(prev / "baseline.json", self.run_dir / "baseline.json")
+        snap = self.run_dir / "carried_design.py"
+        shutil.copy(design, snap)
+        self.state.carried_from = str(prev)
+        self.state.phases["design"] = {**old.phases["design"], "carried_from": str(prev)}
+        self.state.phases["harden"] = {"status": "passed", "design": str(snap), "carried_from": str(design)}
+        self.state.save()
+
     def _stopped(self, e: PipelineStop) -> int:
         if hasattr(self, "state"):
-            self.state.status = {EXIT_TAMPERED: "tampered", EXIT_DESIGN_FAILED: "failed"}.get(e.code, "error")
+            self.state.status = {
+                EXIT_TAMPERED: "tampered",
+                EXIT_DESIGN_FAILED: "failed",
+                EXIT_SPEC_INFEASIBLE: "infeasible",
+            }.get(e.code, "error")
             self.state.message = e.message
-        color = "red" if e.code != EXIT_ENV_ERROR else "yellow"
+        color = "red" if e.code not in (EXIT_ENV_ERROR, EXIT_SPEC_INFEASIBLE) else "yellow"
         self._log(f"[{color} bold]STOPPED[/] ({e.code}): {escape(e.message)}")
         return e.code
 
@@ -328,6 +359,13 @@ class Orchestrator:
                 self._pass("reverify", design)
                 self.state.final_design = str(design)
                 return design, outcome
+            fz = assess(report, self.spec, self.db)
+            if fz is not None and fz.eligible:
+                self._feasibility = (design, report, fz)
+                if fz.stop_now:  # proven: no further design attempt can fit the window
+                    self._infeasible("reverify", design, report, fz)
+        if self._feasibility is not None and self._feasibility[2].infeasible:
+            self._infeasible("reverify", *self._feasibility)
         self._fail("reverify", report)
         raise AssertionError("unreachable")
 
@@ -366,6 +404,67 @@ class Orchestrator:
         self.state.phases[phase] = {"status": "passed", "design": str(design), **(extra or {})}
         self.state.save()
         self._log(f"[green]phase {phase} passed[/]")
+
+    def _infeasible(self, phase: str, design: Path, report: VerificationReport, fz: Feasibility) -> None:
+        self.state.phases[phase] = {"status": "infeasible"}
+        changes = fz.changes()
+        proposal = {
+            "spec": str(self.spec_path),
+            "spec_sha256": self.integrity.hashes.get(str(self.spec_path)),
+            "design": str(design),
+            **fz.to_dict(),
+        }
+        (self.run_dir / "relaxation.json").write_text(json.dumps(proposal, indent=2, default=str))
+        rows = [f"| `{ch['criterion']}` | {ch['field']} | {ch['old']:g} | {ch['new']:g} |" for ch in changes]
+        text = [
+            "# circuitloop: the specification cannot be met with the registered parts",
+            "",
+            f"Phase '{phase}', design `{design}`. The design passes every gate except the worst-case "
+            "tolerance analysis (G7), and the analysis below shows that the failing window is narrower than "
+            "the parts' tolerances allow. Further design attempts cannot fix this, so the run stopped.",
+            "",
+            "## Windows",
+            "",
+            fz.to_markdown(),
+            "",
+            "## Smallest relaxation this design passes",
+            "",
+            "| criterion | limit | spec | relaxed |",
+            "|---|---|---|---|",
+            *rows,
+            "",
+            f"Largest change: {fz.max_relative_change():.1%} of the window centre.",
+            "",
+            "To accept it, run `cloop run --relax` (it writes the relaxed limits into spec.yaml, records them "
+            "under `assumptions`, and re-verifies this design), or edit spec.yaml yourself. Registering parts "
+            "with tighter tolerances (`cloop parts add`) is the other way out.",
+            "",
+            *self._spec_issue_section(),
+            "## Last verification report",
+            "",
+            report.to_markdown(),
+        ]
+        path = self.run_dir / "spec_infeasible.md"
+        path.write_text("\n".join(text) + "\n")
+        summary = ", ".join(f"{c['criterion']} {c['field']} {c['old']:g} -> {c['new']:g}" for c in changes)
+        raise PipelineStop(
+            EXIT_SPEC_INFEASIBLE,
+            f"the spec cannot be met with the registered parts (tolerance window too narrow); smallest "
+            f"relaxation this design passes: {summary}; see {path}",
+        )
+
+    def _spec_issue_section(self) -> list[str]:
+        if self._spec_issue is None:
+            return []
+        where, text = self._spec_issue
+        return [
+            "## Spec issue reported by the design agent (not verified)",
+            "",
+            f"From `{where}`:",
+            "",
+            *[f"> {line}" for line in text.strip().splitlines()],
+            "",
+        ]
 
     def _fail(self, phase: str, report: VerificationReport | None) -> None:
         self.state.phases[phase] = {"status": "failed"}
@@ -425,7 +524,7 @@ class Orchestrator:
         work = self._workspace(it, design, refs, design_readonly=False)
         label = "generate" if attempt == 0 else f"fix #{attempt}"
         self._log(f"  \\[{it.name}] agent ({self.agent.name}) {role}: {label} ...")
-        task = self._task(role, instructions, work, ["design.py"], it)
+        task = self._task(role, instructions, work, ["design.py", "spec_issue.md"], it)
         res = self.agent.run(task)
         used = len(records(it / "agent" / "self_checks.json"))
         self._log(
@@ -434,6 +533,11 @@ class Orchestrator:
             + ("" if res.ok else f" [yellow](agent error: {escape(res.error[:200])})[/]")
         )
         self._check_integrity(f"{it.name} ({phase} {role})")
+        issue = work / "spec_issue.md"
+        if issue.is_file() and issue.read_text().strip():
+            shutil.copy(issue, it / "spec_issue.md")
+            self._spec_issue = (it / "spec_issue.md", issue.read_text())
+            self._log(f"  \\[{it.name}] [yellow]the agent reports a spec issue (spec_issue.md)[/]")
         return it, work
 
     def _task(self, role: str, instructions: str, work: Path, writable: list[str], it: Path) -> AgentTask:
@@ -655,6 +759,14 @@ class Orchestrator:
             else:
                 res, first = "no report", ""
             lines.append(f"| {d.name} | {entry['role']} | {res} | {first} |")
+        lines += ["", *self._spec_issue_section()]
+        if self._feasibility is not None and phase == "reverify":
+            lines += [
+                "## Tolerance windows (feasibility analysis)",
+                "",
+                self._feasibility[2].to_markdown(),
+                "",
+            ]
         if report is not None:
             counts: dict[str, int] = {}
             for g in report.gates:

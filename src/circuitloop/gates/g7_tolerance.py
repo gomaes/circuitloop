@@ -91,6 +91,7 @@ def run_tolerance(
 ) -> GateResult:
     cfg = spec.tolerance
     title = "tolerance analysis"
+    sensitivity: dict | None = None
     if not cfg.enabled:
         return GateResult("G7", title, Status.PASS, notes=["disabled in spec (tolerance.enabled: false)"])
     items = tolerance_items(nl, db)
@@ -166,15 +167,19 @@ def run_tolerance(
                 [Finding("tolerance.nominal", Severity.ERROR, "nominal simulation failed")],
             )
         signs: dict[str, list[int]] = {cid: [] for cid in base_vals}
+        effects: dict[str, list[float]] = {cid: [] for cid in base_vals}  # change at +tol, per item
         for i in range(len(items)):
             vals, _, _ = _evaluate(nl, db, spec, decks[f"sens_{i:02d}"], res[f"sens_{i:02d}"], factors)
             for cid, b in base_vals.items():
                 v = vals.get(cid)
                 if v is None or b is None:
                     signs[cid].append(0)
+                    effects[cid].append(0.0)
                 else:
                     d = v - b
                     signs[cid].append(0 if abs(d) <= 1e-9 * max(abs(b), 1.0) else (1 if d > 0 else -1))
+                    effects[cid].append(d)
+        sensitivity = {"base": base_vals, "effects": effects}
         # 2) worst-case combinations, each at the supply corner with the least margin
         combos: dict[tuple, tuple[str, str]] = {}
         for c in spec.acceptance:
@@ -217,10 +222,28 @@ def run_tolerance(
                 "value": f"{min(vals):.4g} .. {max(vals):.4g}",
                 "limit": f"{'' if lo is None else f'{lo:g}'}..{'' if hi is None else f'{hi:g}'}",
                 "passed": (lo is None or min(vals) >= lo) and (hi is None or max(vals) <= hi),
+                "lo": min(vals),
+                "hi": max(vals),
             }
         )
     items_txt = ", ".join(f"{r}{'' if k == 'value' else '.' + k} ±{t:.0%}" for r, k, t in items)
     notes.append(f"toleranced: {items_txt}")
-    return GateResult(
-        "G7", title, status_from(findings), findings, {"criteria": rows, "method": cfg.method}, notes
-    )
+    metrics: dict = {"criteria": rows, "method": cfg.method}
+    # data for the feasibility analysis (feasibility.py): which part moves which criterion how much
+    metrics["items"] = [
+        {
+            "ref": r,
+            "key": k,
+            "tolerance": t,
+            "part": nl.components[r].part_key,
+            "value": nl.components[r].value,
+        }
+        for r, k, t in items
+    ]
+    if sensitivity is not None:
+        metrics["sensitivity"] = sensitivity
+    metrics["corners"] = {
+        c.key(): [m.get(c.key()) for m in (nominal_measurements or {}).values() if m.get(c.key()) is not None]
+        for c in spec.acceptance
+    }
+    return GateResult("G7", title, status_from(findings), findings, metrics, notes)

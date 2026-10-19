@@ -13,3 +13,6 @@ sim_timeout = 300        # seconds per ngspice run
 # sim_jobs = 4           # parallel ngspice processes (default: automatic)
 review = true            # run the reviewer agent in Phase 3
 keep_raw = false         # keep raw ngspice waveforms of every iteration (can reach GBs per run)
+max_relax = 0.1          # `cloop new` / `run --relax`: largest automatic widening of an infeasible
+                         # window limit (fraction of the window centre); larger ones are reported only
+relax_rounds = 2

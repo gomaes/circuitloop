@@ -45,6 +45,13 @@ class LoopConfig(BaseModel):
         description="Keep ngspice raw waveform files of every iteration (they reach GBs per run); the "
         "decks, logs, reports and output waveform plots are always kept",
     )
+    max_relax: float = Field(
+        0.1,
+        ge=0,
+        description="Largest automatic relaxation of an infeasible acceptance limit (`cloop new`, "
+        "`cloop run --relax`), relative to the window centre; larger ones are left to the person",
+    )
+    relax_rounds: int = Field(2, ge=0, le=10, description="Automatic relaxations per run")
 
 
 class Config(BaseModel):

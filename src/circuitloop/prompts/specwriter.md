@@ -32,6 +32,11 @@ every requirement must be a number the simulator can check.
   long enough for start-up and `save_step` / `save_window_only` to keep the output small.
 - Only request what the parts in `ref/parts_catalog.md` can achieve; if the request is impossible
   with them, still write the closest feasible spec and say so in `assumptions`.
+- Every two-sided window (`min`/`max`) must be wider than the worst-case spread the parts'
+  tolerances cause, or no design can pass the final tolerance analysis. Use the tolerances in
+  the catalog: an RC-timed frequency moves by about ±(R tolerance + C tolerance), a divider-set
+  voltage by about ±(reference tolerance + 2 × R tolerance), plus the effect of the supply range.
+  Unless the request states a tighter limit, leave at least that much plus a few percent margin.
 - If `cloop spec check` lists a fitting topology and the request does not ask for a different
   circuit, set `topology: {name: <it>}` — the pipeline then sizes the circuit deterministically.
 

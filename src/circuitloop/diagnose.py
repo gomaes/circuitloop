@@ -46,7 +46,7 @@ class Circuit:
     # ---- netlist --------------------------------------------------------
     def pd(self, ref: str) -> PartDef | None:
         c = self.nl.components.get(ref)
-        return self.db.get(c.part_key) if c else None
+        return self.db.resolve(c.part_key, c.value) if c else None
 
     def refs(self, *kinds: str, key: str | None = None) -> list[str]:
         out = []
@@ -612,3 +612,42 @@ def supply_drop(c: Circuit) -> list[Diagnosis]:
             [],
         )
     ]
+
+
+# ------------------------------------------------------------ tolerance windows
+@diagnoser
+def tolerance_window(c: Circuit) -> list[Diagnosis]:
+    from .feasibility import assess
+
+    fz = assess(c.report, c.spec, c.db)
+    if fz is None:
+        return []
+    out = []
+    for chk in fz.checks:
+        if chk.verdict == "recenter":
+            fix = (
+                f"Keep the parts; move the nominal {chk.id} by {chk.shift:+.4g} so the worst-case range "
+                "sits in the middle of the window."
+            )
+        elif chk.verdict == "tighter_parts":
+            fix = "Use the tighter registered parts: " + "; ".join(u.text() for u in chk.upgrades[:4]) + "."
+        elif chk.verdict == "infeasible":
+            steps = []
+            if chk.upgrades:
+                steps.append("use the tighter parts: " + "; ".join(u.text() for u in chk.upgrades[:4]))
+            if not chk.centred:
+                steps.append(f"move the nominal {chk.id} by {chk.centre_offset:+.4g} to the window centre")
+            fix = (
+                (
+                    "Make the necessary relaxation as small as possible: " + "; ".join(steps) + ". "
+                    if steps
+                    else ""
+                )
+                + "The window itself is narrower than the parts allow; the pipeline reports this to the "
+                "person, do not try to hide it."
+            )
+        else:
+            continue
+        refs = sorted({u.ref for u in chk.upgrades})
+        out.append(Diagnosis(f"tolerance.{chk.verdict}", chk.explain(), fix, refs))
+    return out

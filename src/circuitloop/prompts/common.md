@@ -29,3 +29,9 @@
   extreme that hurts each criterion. Design with margin: a nominal value just inside a
   limit will fail. Prefer tighter parts where precision matters (film instead of
   electrolytic capacitors for timing).
+- If you are **certain** the specification cannot be met with the parts in the catalog (not
+  merely hard — e.g. no registered part can do it, or the window is narrower than the parts'
+  tolerances), say so honestly in `spec_issue.md`: which requirement, the calculation that
+  shows it, and the smallest change to the spec that would make it achievable. The pipeline
+  passes it on to the person. It does not change pass/fail, so still deliver the best
+  `design.py` you can.

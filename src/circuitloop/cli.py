@@ -478,6 +478,13 @@ def new(
     no_run: Annotated[
         bool, typer.Option("--no-run", help="Only write the spec; run later with `cloop run`")
     ] = False,
+    no_relax: Annotated[
+        bool,
+        typer.Option(
+            "--no-relax",
+            help="Do not widen an acceptance window that the registered parts cannot meet; only report it",
+        ),
+    ] = False,
     agent: AgentOpt = None,
     max_iter: MaxIterOpt = None,
     jobs: JobsOpt = None,
@@ -562,7 +569,12 @@ def new(
         pcfg.loop.max_iter = max_iter
     if jobs is not None:
         pcfg.loop.sim_jobs = jobs
-    code = Orchestrator(dest / "spec.yaml", pcfg, backend, console=console, verbose=verbose).run()
+    if no_relax:
+        code = Orchestrator(dest / "spec.yaml", pcfg, backend, console=console, verbose=verbose).run()
+    else:
+        from .relax import run_with_relaxation
+
+        code = run_with_relaxation(dest / "spec.yaml", pcfg, backend, console, verbose)
     raise typer.Exit(code)
 
 
@@ -583,6 +595,15 @@ def run(
     run_dir: Annotated[
         Path | None, typer.Option("--run", help="Run directory to resume (default: latest)")
     ] = None,
+    relax: Annotated[
+        bool,
+        typer.Option(
+            "--relax",
+            help="If an acceptance window proves narrower than the registered parts allow, widen it "
+            "minimally in spec.yaml and continue (also applies the proposal of a run that already stopped "
+            "this way)",
+        ),
+    ] = False,
     agent: AgentOpt = None,
     max_iter: MaxIterOpt = None,
     jobs: JobsOpt = None,
@@ -607,7 +628,15 @@ def run(
     except AgentError as e:
         err.print(f"[red]error:[/] {e}")
         raise typer.Exit(EXIT_ENV_ERROR) from e
-    code = Orchestrator(spec, cfg, backend, console=console, verbose=verbose).run(from_phase, run_dir)
+    if relax:
+        if from_phase != "design" or run_dir is not None:
+            err.print("[red]error:[/] --relax cannot be combined with --from / --run")
+            raise typer.Exit(EXIT_ENV_ERROR)
+        from .relax import run_with_relaxation
+
+        code = run_with_relaxation(spec, cfg, backend, console, verbose, resume=True)
+    else:
+        code = Orchestrator(spec, cfg, backend, console=console, verbose=verbose).run(from_phase, run_dir)
     raise typer.Exit(code)
 
 
@@ -629,7 +658,14 @@ def status(
     if as_json:
         console.print_json(json.dumps(st.__dict__, default=str))
         return
-    colors = {"passed": "green", "failed": "red", "tampered": "red", "error": "yellow", "running": "cyan"}
+    colors = {
+        "passed": "green",
+        "failed": "red",
+        "infeasible": "yellow",
+        "tampered": "red",
+        "error": "yellow",
+        "running": "cyan",
+    }
     console.print(f"run: [bold]{rd}[/]")
     console.print(f"status: [{colors.get(st.status, 'white')}]{st.status}[/]  {st.message}")
     console.print(f"agent: {st.agent}   started: {st.started}   finished: {st.finished or '-'}")
@@ -642,7 +678,7 @@ def status(
         n = sum(1 for i in st.iterations if i["phase"] == ph)
         t.add_row(ph, info.get("status", "-"), str(n))
     console.print(t)
-    for name in ("failure_report.md", "TAMPER_REPORT.md"):
+    for name in ("spec_infeasible.md", "failure_report.md", "TAMPER_REPORT.md"):
         if (rd / name).is_file():
             console.print(f"see: {rd / name}")
 
